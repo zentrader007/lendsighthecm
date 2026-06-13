@@ -256,8 +256,8 @@ export function RedesignAdvisor({
           <NumberField label="Other (in loan)" value={inp.costs.other} onChange={(v) => setCost('other', v)} suffix="$" min={0} tip="Any other closing costs financed into the loan." />
         </Section>
 
-        <button className="toggle-advanced" onClick={() => setDrawerOpen(false)}>
-          Done
+        <button className="drawer-done" onClick={() => setDrawerOpen(false)}>
+          Done, or Click on Main Page
         </button>
       </aside>
 

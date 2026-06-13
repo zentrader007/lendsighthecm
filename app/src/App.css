@@ -198,21 +198,21 @@ header h1 { font-size: 30px; margin: 0; color: var(--navy); letter-spacing: -0.0
 .field-disabled .field-input { background: var(--accent-bg); }
 .field-input input:disabled { cursor: not-allowed; color: var(--muted); }
 
-.toggle-advanced {
+.drawer-done {
   width: 100%;
-  padding: 11px;
-  background: #fff;
-  border: 1px solid var(--border);
-  color: var(--navy);
+  padding: 12px;
+  background: rgba(74, 124, 155, 0.12);
+  border: 1px solid var(--primary);
+  color: var(--primary);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 16px;
   transition: all 0.15s ease;
 }
-.toggle-advanced:hover { background: var(--secondary); border-color: var(--primary); }
+.drawer-done:hover { background: rgba(74, 124, 155, 0.2); border-color: var(--primary); }
 
 .warning-banner {
   background: rgba(224, 122, 95, 0.1);
