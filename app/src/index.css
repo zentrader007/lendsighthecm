@@ -1,0 +1,14 @@
+/* Minimal reset only. App.css owns all theming (DDD design tokens), fonts, and
+ * layout widths — keep this file free of app-specific styles so it can't fight
+ * the app's own max-width / colors. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}

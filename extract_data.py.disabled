@@ -1,0 +1,76 @@
+import openpyxl, warnings, json, os, sys
+warnings.filterwarnings('ignore')
+
+SRC = sys.argv[1] if len(sys.argv) > 1 else '00 Variable Rate HECM Simulator V8.5.1.xlsx'
+out = sys.argv[2] if len(sys.argv) > 2 else 'app/src/data'
+wb = openpyxl.load_workbook(SRC, data_only=True)
+os.makedirs(out, exist_ok=True)
+
+# ---- PLF Table ----
+# Col A = index, Col B = Age, then repeating (Rate%, PLF) pairs across columns.
+# Emit parallel arrays so the JS lookup matches by index, not float-string keys.
+ws = wb['PLF Table']
+raw = {}  # age -> {rate_pct(float): plf}
+rate_set = set()
+for r in range(3, ws.max_row + 1):
+    age = ws.cell(r, 2).value
+    if age is None:
+        continue
+    age = int(age)
+    d = raw.setdefault(age, {})
+    c = 3
+    while c <= ws.max_column:
+        rate = ws.cell(r, c).value
+        val = ws.cell(r, c + 1).value
+        if rate is not None and val is not None:
+            d[round(float(rate), 5)] = val
+            rate_set.add(round(float(rate), 5))
+        c += 2
+rates = sorted(rate_set)
+by_age = {}
+for age, d in raw.items():
+    by_age[str(age)] = [d.get(rt) for rt in rates]
+json.dump({'ratesPct': rates, 'byAge': by_age}, open(f'{out}/plfTable.json', 'w'))
+idx675 = rates.index(6.75) if 6.75 in rates else -1
+print('PLF: ages', len(by_age), 'rates', len(rates),
+      'plf[64]@6.75=', by_age['64'][idx675] if idx675 >= 0 else 'n/a')
+
+# ---- MIP Annual Costs ----  col C = year index, col F = mip cost
+ws = wb['MIP Annual Costs']
+mip = []
+for r in range(3, ws.max_row + 1):
+    yr = ws.cell(r, 3).value
+    cost = ws.cell(r, 6).value
+    if yr is None:
+        continue
+    mip.append({'year': yr, 'cost': cost})
+json.dump(mip, open(f'{out}/mipTable.json', 'w'))
+print('MIP rows', len(mip), 'first3', mip[:3])
+
+
+def series(sheet, year_col, val_col, start=3):
+    ws = wb[sheet]
+    rows = []
+    for r in range(start, ws.max_row + 1):
+        y = ws.cell(r, year_col).value
+        v = ws.cell(r, val_col).value
+        if y is None and v is None:
+            continue
+        rows.append({'year': y, 'value': v})
+    return rows
+
+
+hist = {
+    'cmt10yr': series('Hist. 10yrCMT - Reverse Order', 1, 3),   # A=year, C=rounded index
+    'cmt1yr': series('Hist. 1yrCMT - Reverse Ord', 1, 2),       # A=year, B=value
+    'sp500': series('Hist. S&P500', 2, 4),                      # B=year, D=return less 1% fee
+    'housingCO': series('Hist. CO Housing', 2, 3),              # B=year, C=appreciation
+    'housingAZ': series('Hist. AZ Housing', 2, 3),
+    'housingHypothetical': series('Hypothetical Housing Market', 1, 3),  # C=appreciation
+    'housingManual': series('Manual Housing Market', 2, 3),
+}
+json.dump(hist, open(f'{out}/historical.json', 'w'))
+for k, v in hist.items():
+    print(k, len(v), v[:2])
+
+print('DONE')

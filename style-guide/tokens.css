@@ -1,0 +1,110 @@
+/* ============================================================
+   Debt.Done.Date — Design Tokens
+   Drop into your :root, or import as the first stylesheet.
+   ============================================================ */
+
+:root {
+  /* ── Brand colors ──────────────────────────────────────── */
+  --ddd-primary:        #4A7C9B;  /* Steel blue — primary actions, links */
+  --ddd-primary-hover:  #3F6B87;  /* Primary hover state */
+  --ddd-navy:           #1B2A4A;  /* Headlines, dark surfaces */
+  --ddd-navy-deep:      #0F1A2E;  /* Footer, deepest dark */
+
+  /* ── Accent colors (used sparingly) ────────────────────── */
+  --ddd-coral:          #E07A5F;  /* Strike-through, alert accents */
+  --ddd-teal:           #2B7A78;  /* Secondary section accents */
+  --ddd-green:          #5B9F5B;  /* Success, positive numbers, "saved" */
+  --ddd-orange:         #D4854A;  /* Tertiary highlight */
+  --ddd-red:            #C75B5B;  /* Destructive */
+  --ddd-purple:         #7B6B8D;  /* Quaternary highlight */
+  --ddd-sky:            #7BB5D6;  /* On-dark accent (CTA on navy) */
+
+  /* ── Neutrals ──────────────────────────────────────────── */
+  --ddd-bg:             #FFFFFF;
+  --ddd-bg-soft:        #FBFCFD;  /* Hero gradient top */
+  --ddd-secondary:      #F5F6F8;  /* Section backgrounds, input fills */
+  --ddd-muted:          #F5F6F8;
+  --ddd-accent-bg:      #EEF2F5;  /* Subtle accent surface */
+  --ddd-border:         #E2E6EC;
+  --ddd-border-soft:    rgba(226,230,236,0.7);
+  --ddd-gray:           #D8DCE3;
+
+  /* ── Foreground ────────────────────────────────────────── */
+  --ddd-fg:             #1B2A4A;  /* Body text, same as --navy */
+  --ddd-fg-muted:       #5A6A80;  /* Secondary text, captions */
+  --ddd-fg-on-dark:     #FFFFFF;
+
+  /* ── Type ──────────────────────────────────────────────── */
+  --ddd-font-sans:      'DM Sans', system-ui, -apple-system, sans-serif;
+  --ddd-font-mono:      'DM Mono', ui-monospace, 'SF Mono', monospace;
+
+  --ddd-fs-base:        15px;     /* body */
+  --ddd-fs-sm:          13px;
+  --ddd-fs-xs:          11px;
+  --ddd-fs-lg:          17px;
+  --ddd-fs-xl:          19px;
+  --ddd-fs-h1:          clamp(2.4rem, 5vw, 4.2rem);
+  --ddd-fs-h2:          clamp(2rem, 3.6vw, 3rem);
+  --ddd-fs-h3:          19px;
+  --ddd-fs-h4:          16px;
+
+  --ddd-fw-regular:     400;
+  --ddd-fw-medium:      500;
+  --ddd-fw-semibold:    600;
+  --ddd-fw-bold:        700;
+  --ddd-fw-extrabold:   800;
+  --ddd-fw-black:       900;     /* used for all major headlines */
+
+  --ddd-tracking-tight: -0.03em;  /* H1 */
+  --ddd-tracking-h2:    -0.025em;
+  --ddd-tracking-label: 0.18em;   /* uppercase labels */
+
+  --ddd-lh-tight:       1.05;     /* headings */
+  --ddd-lh-base:        1.6;      /* body */
+  --ddd-lh-snug:        1.5;      /* large text */
+
+  /* ── Radii ─────────────────────────────────────────────── */
+  --ddd-radius-sm:      7px;
+  --ddd-radius-md:      9px;      /* default button */
+  --ddd-radius-lg:      11px;     /* stat cards */
+  --ddd-radius-xl:      14px;     /* feature cards */
+  --ddd-radius-2xl:     16px;     /* how-it-works cards */
+  --ddd-radius-3xl:     18px;     /* hero mock, pricing cards */
+  --ddd-radius-pill:    999px;
+
+  /* ── Spacing (8-point base) ────────────────────────────── */
+  --ddd-space-1:        4px;
+  --ddd-space-2:        8px;
+  --ddd-space-3:        12px;
+  --ddd-space-4:        16px;
+  --ddd-space-5:        20px;
+  --ddd-space-6:        24px;
+  --ddd-space-8:        32px;
+  --ddd-space-10:       40px;
+  --ddd-space-12:       48px;
+  --ddd-space-16:       64px;
+  --ddd-space-20:       80px;
+  --ddd-space-24:       96px;     /* section padding (regular density) */
+
+  /* ── Shadows ───────────────────────────────────────────── */
+  --ddd-shadow-sm:      0 6px 16px -6px rgba(27,42,74,0.4);
+  --ddd-shadow-md:      0 8px 24px -8px rgba(27,42,74,0.35);
+  --ddd-shadow-lg:      0 12px 32px -12px rgba(27,42,74,0.12);
+  --ddd-shadow-xl:      0 20px 48px -16px rgba(27,42,74,0.15);
+  --ddd-shadow-2xl:     0 30px 80px -20px rgba(27,42,74,0.25);
+  --ddd-shadow-cta:     0 8px 24px -8px rgba(27,42,74,0.5);
+  --ddd-shadow-on-dark: 0 24px 56px -16px rgba(27,42,74,0.4);
+
+  /* ── Transitions ───────────────────────────────────────── */
+  --ddd-ease:           cubic-bezier(0.65, 0.05, 0.36, 1);
+  --ddd-dur-fast:       0.15s;
+  --ddd-dur-base:       0.2s;
+  --ddd-dur-slow:       2.4s;     /* hero strike animation */
+}
+
+/* ── Google Fonts import ─────────────────────────────────── */
+/* Add this to <head>:
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+*/

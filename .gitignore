@@ -1,0 +1,29 @@
+# Dependencies & build output
+node_modules/
+app/node_modules/
+dist/
+app/dist/
+dist-ssr/
+*.local
+
+# Vercel
+.vercel/
+
+# Claude Code local tooling/session config
+.claude/
+
+# Logs
+*.log
+logs/
+
+# Stale local duplicate of an earlier build (kept locally, not versioned)
+HECM-VAR-Simulator-source/
+HECM-VAR-Simulator-source.zip
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.sw?
