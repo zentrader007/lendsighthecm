@@ -153,16 +153,6 @@ export function SequenceChart({ rows }: { rows: SequenceRow[] }) {
   );
 }
 
-export function Charts({ projection }: { projection: ProjectionRow[] }) {
-  return (
-    <div className="charts">
-      <HomeEquityChart projection={projection} />
-      <LocChart projection={projection} />
-      <InvestChart projection={projection} />
-    </div>
-  );
-}
-
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="chart-card">

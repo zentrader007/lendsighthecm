@@ -3,9 +3,7 @@ import { runSimulation } from './engine';
 import type { SimulationInputs } from './engine';
 import { defaultInputs } from './engine/defaults';
 import { readSharedState, buildShareUrl } from './share';
-import { ClassicAdvisor } from './views/ClassicAdvisor';
 import { RedesignAdvisor } from './views/RedesignAdvisor';
-import type { LayoutKind } from './views/types';
 import './App.css';
 
 // The consumer view pulls in Recharts; lazy-load it so the heavy charting
@@ -15,14 +13,10 @@ const ConsumerView = lazy(() =>
 );
 
 const shared = readSharedState();
-// The redesigned layout is the default; ?layout=classic serves the original.
-const initialLayout: LayoutKind =
-  new URLSearchParams(window.location.search).get('layout') === 'classic' ? 'classic' : 'v2';
 
 export default function App() {
   const [inp, setInp] = useState<SimulationInputs>(shared.inputs ?? defaultInputs);
   const [view, setView] = useState<'advisor' | 'consumer'>(shared.view);
-  const [layout, setLayout] = useState<LayoutKind>(initialLayout);
   const [copied, setCopied] = useState(false);
 
   const result = useMemo(() => runSimulation(inp), [inp]);
@@ -36,15 +30,6 @@ export default function App() {
     } catch {
       window.prompt('Copy this shareable consumer link:', url);
     }
-  };
-
-  // Keep ?layout= in the URL so each layout has a stable, shareable address.
-  const switchLayout = (l: LayoutKind) => {
-    setLayout(l);
-    const url = new URL(window.location.href);
-    if (l === 'classic') url.searchParams.set('layout', 'classic');
-    else url.searchParams.delete('layout');
-    window.history.replaceState(null, '', url);
   };
 
   if (view === 'consumer') {
@@ -63,15 +48,14 @@ export default function App() {
     );
   }
 
-  const props = {
-    inp,
-    setInp,
-    result,
-    copied,
-    share,
-    goConsumer: () => setView('consumer'),
-    switchLayout,
-  };
-
-  return layout === 'v2' ? <RedesignAdvisor {...props} /> : <ClassicAdvisor {...props} />;
+  return (
+    <RedesignAdvisor
+      inp={inp}
+      setInp={setInp}
+      result={result}
+      copied={copied}
+      share={share}
+      goConsumer={() => setView('consumer')}
+    />
+  );
 }

@@ -10,9 +10,7 @@ export const RATE_SCENARIOS: readonly RateScenario[] = [
   'Replay 1986-2024',
 ];
 
-export type LayoutKind = 'classic' | 'v2';
-
-/** Props shared by both advisor layouts. App.tsx owns the state; views render it. */
+/** Props for the advisor layout. App.tsx owns the state; the view renders it. */
 export interface AdvisorProps {
   inp: SimulationInputs;
   setInp: Dispatch<SetStateAction<SimulationInputs>>;
@@ -20,5 +18,4 @@ export interface AdvisorProps {
   copied: boolean;
   share: () => void;
   goConsumer: () => void;
-  switchLayout: (l: LayoutKind) => void;
 }

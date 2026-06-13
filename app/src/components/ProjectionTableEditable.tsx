@@ -1,6 +1,6 @@
 import type { ProjectionRow } from '../engine';
 import { usd, pct } from '../format';
-import { ScheduleCell } from './ScheduleEditor';
+import { ScheduleCell } from './ScheduleCell';
 
 /**
  * Projection table with Draws / Payments as editable cells (years 1..N), so
