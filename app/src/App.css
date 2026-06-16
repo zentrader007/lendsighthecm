@@ -488,6 +488,33 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
 /* Chart canvas height scales with the window (~50% taller than the old 260px). */
 .chart-body { height: clamp(320px, 45vh, 540px); }
 
+.live-rates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 11px;
+}
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.live-dot.live-ok { background: var(--green); }
+.live-dot.live-loading { background: var(--orange); }
+.live-dot.live-error { background: var(--coral); }
+.live-label { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.live-refresh {
+  margin-left: auto;
+  border: 1px solid var(--primary);
+  background: rgba(74, 124, 155, 0.12);
+  color: var(--primary);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.live-refresh:hover { background: rgba(74, 124, 155, 0.2); }
+.live-refresh:disabled { opacity: 0.5; cursor: default; }
+
 .chart-caption {
   margin: 4px 0 0;
   font-size: 12px;

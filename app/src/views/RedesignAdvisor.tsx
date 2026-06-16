@@ -1,7 +1,8 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import type { SimulationInputs } from '../engine';
 import { defaultInputs } from '../engine/defaults';
 import { runSequenceAnalysis } from '../engine/sequence';
+import { fetchLiveCMT } from '../lib/cmt';
 import { NumberField, SelectField, ToggleField } from '../components/Field';
 import { InfoTip } from '../components/InfoTip';
 import { ProjectionTableEditable } from '../components/ProjectionTableEditable';
@@ -56,9 +57,31 @@ export function RedesignAdvisor({
 }: AdvisorProps) {
   const [stage, setStage] = useState<StageView>('loc');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [live, setLive] = useState<{ status: 'idle' | 'loading' | 'ok' | 'error'; asOf?: string }>({
+    status: 'idle',
+  });
 
   const set = <K extends keyof SimulationInputs>(k: K, v: SimulationInputs[K]) =>
     setInp((p) => ({ ...p, [k]: v }));
+
+  // Pull live 10yr & 1yr CMT from the /api/cmt proxy and fill the rate fields
+  // (still editable). Falls back silently to the manual values on any error.
+  const refreshLive = useCallback(async () => {
+    setLive((s) => ({ ...s, status: 'loading' }));
+    try {
+      const data = await fetchLiveCMT();
+      setInp((p) => ({ ...p, cmt10yr: data.cmt10yr, cmt1yr: data.cmt1yr }));
+      setLive({ status: 'ok', asOf: data.asOf });
+    } catch {
+      setLive({ status: 'error' });
+    }
+  }, [setInp]);
+
+  // Fresh visits pull live rates on load; a shared ?d= scenario keeps the exact
+  // numbers it was built with (Refresh still works if the advisor wants live).
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('d')) refreshLive();
+  }, [refreshLive]);
   const setCost = (k: keyof SimulationInputs['costs'], v: number) =>
     setInp((p) => ({ ...p, costs: { ...p.costs, [k]: v } }));
 
@@ -226,8 +249,28 @@ export function RedesignAdvisor({
         </Section>
 
         <Section title="Rates">
-          <NumberField label="10yr CMT (Expected idx)" value={inp.cmt10yr} onChange={(v) => set('cmt10yr', v)} asPercent min={0} max={20} tip="The 10-year Constant Maturity Treasury rate — the index used to set the expected rate and the PLF." />
-          <NumberField label="1yr CMT (Initial idx)" value={inp.cmt1yr} onChange={(v) => set('cmt1yr', v)} asPercent min={0} max={20} tip="The 1-year Constant Maturity Treasury rate — the index used to set the initial (year-one) interest rate." />
+          <div className="live-rates">
+            <span className={`live-dot live-${live.status}`} />
+            <span className="live-label">
+              {live.status === 'loading'
+                ? 'Fetching live CMT…'
+                : live.status === 'ok'
+                  ? `Live CMT · as of ${live.asOf}`
+                  : live.status === 'error'
+                    ? 'Live CMT unavailable — using manual values'
+                    : 'Live CMT'}
+            </span>
+            <button
+              type="button"
+              className="live-refresh"
+              onClick={refreshLive}
+              disabled={live.status === 'loading'}
+            >
+              {live.status === 'loading' ? '…' : 'Refresh'}
+            </button>
+          </div>
+          <NumberField label="10yr CMT (Expected idx)" value={inp.cmt10yr} onChange={(v) => set('cmt10yr', v)} asPercent min={0} max={20} tip="The 10-year Constant Maturity Treasury rate — the index for the expected rate and PLF. Auto-filled live from FRED on load; you can still type over it." />
+          <NumberField label="1yr CMT (Initial idx)" value={inp.cmt1yr} onChange={(v) => set('cmt1yr', v)} asPercent min={0} max={20} tip="The 1-year Constant Maturity Treasury rate — the index for the year-one interest rate. Auto-filled live from FRED on load; you can still type over it." />
           <NumberField label="Margin" value={inp.margin} onChange={(v) => set('margin', v)} asPercent min={0} max={10} tip="The lender's margin, added to the index to determine the interest rate." />
           <NumberField label="Annual MIP" value={inp.annualMIP} onChange={(v) => set('annualMIP', v)} asPercent min={0} max={5} tip="The ongoing FHA Mortgage Insurance Premium rate charged each year on the loan balance (currently 0.5%)." />
           <SelectField label="Rate Scenario" value={inp.rateScenario} options={RATE_SCENARIOS} onChange={(v) => set('rateScenario', v)} tip="Stress-test how the balance, credit line, and total principal limit grow: flat at the projected rate, shocked up or down 2%, or replaying actual 1-year CMT rates from 1986 forward." />
