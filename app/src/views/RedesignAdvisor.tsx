@@ -113,7 +113,7 @@ export function RedesignAdvisor({
     networth: `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(r85.rmNetWorth)} at age ${r85.age}, vs ${usd(r85.homeValue)} if no reverse mortgage were taken — a ${usd(r85.homeValue - r85.rmNetWorth)} difference from accrued borrowing and costs.`,
     equity: `At age ${r85.age} the home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity.`,
     invest: `By age ${r90.age}, investing the proceeds plus remaining equity totals ${usd(r90.investmentPlusEquity)}, vs ${usd(r90.equity)} from keeping equity alone.`,
-    standby: `If nothing is ever drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity + ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Net worth with the HECM is ${usd(r20.rmNetWorth)} — the ${usd(r20.homeValue - r20.rmNetWorth)} difference is the cost of standby liquidity, not lost wealth from borrowing.`,
+    standby: `If nothing is ever drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Net worth with the HECM is ${usd(r20.rmNetWorth)} — the ${usd(r20.homeValue - r20.rmNetWorth)} difference is the cost of standby liquidity, not lost wealth from borrowing. If the property is sold, the line of credit is no longer available.`,
     seqrisk: seqInsight,
     table: 'Draw and Payment cells are editable — type a value and the entire projection updates instantly.',
   };

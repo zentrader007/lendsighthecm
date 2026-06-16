@@ -1,6 +1,7 @@
 import type { ProjectionRow } from '../engine';
 import { usd, pct } from '../format';
 import { ScheduleCell } from './ScheduleCell';
+import { InfoTip } from './InfoTip';
 
 /**
  * Projection table with Draws / Payments as editable cells (years 1..N), so
@@ -33,17 +34,17 @@ export function ProjectionTableEditable({
       <table className="projection projection-editable">
         <thead>
           <tr>
-            <th>Age</th>
-            <th>EOY</th>
-            <th>Draws</th>
-            <th>Payments</th>
-            <th>Available LOC</th>
-            <th>Loan Balance</th>
-            <th>Home Equity</th>
-            <th>Home Value</th>
-            <th>Tenure/Mo</th>
-            <th>Accrual</th>
-            <th>Deduction</th>
+            <th>Age <InfoTip text="The age of the (youngest) borrower at the end of each projection year." /></th>
+            <th>EOY <InfoTip text="Projection year — full years elapsed since closing. Year 0 is the closing snapshot." /></th>
+            <th>Draws <InfoTip text="Extra cash drawn from the line of credit at the start of that year. Editable." /></th>
+            <th>Payments <InfoTip text="Voluntary repayments made that year, which reduce the loan balance. Editable." /></th>
+            <th>Available LOC <InfoTip text="Unused line of credit remaining that year. It grows at the loan rate until drawn." /></th>
+            <th>Loan Balance <InfoTip text="Unpaid principal balance — financed costs, liens, and any draws, plus accrued interest and MIP." /></th>
+            <th>Home Equity <InfoTip text="Projected home value minus the loan balance — the equity remaining to the owner or heirs." /></th>
+            <th>Home Value <InfoTip text="Projected home value, grown each year at the assumed appreciation rate." /></th>
+            <th>Tenure/Mo <InfoTip text="The monthly tenure payment the remaining credit could fund for life from that age." /></th>
+            <th>Accrual <InfoTip text="The annual rate (index + margin + MIP) applied to the balance and credit line that year." /></th>
+            <th>Deduction <InfoTip text="Interest paid that year that may be tax-deductible when the loan is repaid. Not tax advice." /></th>
           </tr>
         </thead>
         <tbody>

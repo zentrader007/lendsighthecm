@@ -260,6 +260,31 @@ header h1 { font-size: 30px; margin: 0; color: var(--navy); letter-spacing: -0.0
   overflow: auto;
   max-height: 70vh;
 }
+/* Year-table header tooltips drop BELOW the sticky header (the scroll
+   container would clip a bubble placed above it) and anchor to the icon so
+   they stay inside the container; the right-most columns anchor right. */
+.projection th { font-weight: 700; }
+.projection th .infotip-bubble {
+  bottom: auto;
+  top: calc(100% + 9px);
+  left: 0;
+  transform: translateX(0) translateY(4px);
+  max-width: 220px;
+}
+.projection th .infotip:hover .infotip-bubble,
+.projection th .infotip:focus-visible .infotip-bubble {
+  transform: translateX(0) translateY(0);
+}
+.projection th .infotip-bubble::after {
+  top: auto;
+  bottom: 100%;
+  left: 14px;
+  transform: translateX(0);
+  border-top-color: transparent;
+  border-bottom-color: var(--navy);
+}
+.projection th:nth-last-child(-n + 3) .infotip-bubble { left: auto; right: 0; }
+.projection th:nth-last-child(-n + 3) .infotip-bubble::after { left: auto; right: 14px; }
 table.projection { width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 table.projection th, table.projection td { padding: 8px 11px; text-align: right; white-space: nowrap; }
 table.projection th {

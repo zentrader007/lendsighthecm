@@ -83,6 +83,7 @@ export function InvestChart({ projection }: { projection: ProjectionRow[] }) {
           <Legend />
           <Line type="monotone" dataKey="equityOnly" name="Equity Only" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="investmentPlusEquity" name="Investment + Equity" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="upb" name="Loan Balance" stroke="#e07a5f" dot={false} strokeWidth={2} strokeDasharray="6 4" />
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>

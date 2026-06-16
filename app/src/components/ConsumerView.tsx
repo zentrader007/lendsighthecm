@@ -104,10 +104,13 @@ export function ConsumerView({
         </p>
         <div className="consumer-standby-stats">
           <div className="consumer-standby-stat">
-            <span className="consumer-standby-label">Total you could access at age {r20.age}</span>
+            <span className="consumer-standby-label">
+              Total you could potentially access at age {r20.age}
+            </span>
             <span className="consumer-standby-value">{usd(r20.accessibleResources)}</span>
             <span className="consumer-standby-note">
-              {usd(r20.equity)} home equity + {usd(r20.availableLOC)} credit line
+              {usd(r20.equity)} home equity OR {usd(r20.availableLOC)} credit line — not both; selling
+              the home to access equity ends the credit line.
             </span>
           </div>
           <div className="consumer-standby-stat">
