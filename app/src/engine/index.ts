@@ -33,7 +33,14 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   // --- Rates ---
   const expectedRate = MROUND(inp.cmt10yr + margin, 0.00125);
   const initialRate = MROUND(inp.cmt1yr + margin, 0.00125);
-  const loanProjectedRate = expectedRate + annMip;
+  // Two distinct HUD rates: tenure/term PAYMENTS amortize at the expected rate
+  // + MIP (HUD uses the expected rate for payment plans), while the principal
+  // limit / LOC / balance GROW each month at the note (current) rate + MIP —
+  // HUD's monthly principal-limit growth rate (24 CFR 206.3). On a normal
+  // upward-sloping yield curve the note rate is below the expected rate, so
+  // growth is more conservative than the expected-rate projection.
+  const loanProjectedRate = expectedRate + annMip; // payment-plan amortization rate
+  const growthRate = initialRate + annMip; // monthly principal-limit growth rate
   const plf = lookupPLF(age, inp.cmt10yr, margin);
 
   // --- Costs ---
@@ -137,12 +144,12 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     // margin + MIP (the index cannot go below zero on a variable HECM).
     const accrualRate =
       inp.rateScenario === 'Rates +2%'
-        ? loanProjectedRate + 0.02
+        ? growthRate + 0.02
         : inp.rateScenario === 'Rates -2%'
-          ? Math.max(margin + annMip, loanProjectedRate - 0.02)
+          ? Math.max(margin + annMip, growthRate - 0.02)
           : inp.rateScenario === 'Replay 1986-2024'
             ? hist1yrCMTForward(n) + margin + annMip
-            : loanProjectedRate;
+            : growthRate;
 
     const upb = FV(accrualRate / 12, 12, 0, -(prev.upb + draw - payment));
     const availableLOC = FV(accrualRate / 12, 12, 0, -(prev.availableLOC - draw + payment));

@@ -32,8 +32,9 @@ describe('Sequence-of-returns analysis', () => {
   it('year 4: bridge keeps the portfolio at $856k vs $572k selling assets', () => {
     near(y(4).portfolioSell, 572154);
     near(y(4).portfolioBridge, 856147);
-    near(y(4).hecmDebt, 288474);
-    near(y(4).hecmLOC, 55489);
+    // HECM debt/LOC grow at the note rate (6.625%) per HUD's growth formula.
+    near(y(4).hecmDebt, 283875);
+    near(y(4).hecmLOC, 51644);
   });
 
   it('bridge draws the full 4 years of spending from the LOC', () => {
@@ -53,12 +54,12 @@ describe('Sequence-of-returns analysis', () => {
     expect(seq.unfundedBridge).toBe(0);
   });
 
-  it('year 25: bridge ends with $367k portfolio; debt has grown to $1.32M', () => {
+  it('year 25: bridge ends with $367k portfolio; debt has grown to $1.14M', () => {
     near(y(25).portfolioSell, 0);
     near(y(25).portfolioBridge, 366989);
-    near(y(25).hecmDebt, 1316229);
-    near(y(25).equity, 358794);
-    near(y(25).hecmLOC, 253181);
+    near(y(25).hecmDebt, 1136784);
+    near(y(25).equity, 538238);
+    near(y(25).hecmLOC, 206809);
   });
 
   it('caps bridge draws so the LOC never goes negative', () => {
