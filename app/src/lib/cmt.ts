@@ -3,6 +3,7 @@
 export interface LiveCMT {
   cmt10yr: number; // decimal, e.g. 0.0438
   cmt1yr: number; // decimal, e.g. 0.0375
+  mortgage30?: number; // 30yr fixed mortgage rate (FRED MORTGAGE30US), decimal
   asOf: string; // ISO observation date from FRED, e.g. "2026-06-12"
   source: string;
 }

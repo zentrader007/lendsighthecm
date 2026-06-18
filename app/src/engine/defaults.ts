@@ -45,6 +45,9 @@ export const defaultInputs: SimulationInputs = {
   crashPct: 0.4,
   recoveryReturn: 0.1,
   recoveryYears: 4,
+  existingLienRate: 0.065, // editable; auto-filled from the live 30yr mortgage rate
+  existingLienTermRemaining: 25,
+  freedCashConsumed: false,
   draws: Array(38).fill(0),
   payments: Array(38).fill(0),
   costs: defaultCosts,

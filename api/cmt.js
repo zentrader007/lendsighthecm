@@ -9,7 +9,7 @@
 // NOTE: the CSV-parsing logic here mirrors latestRateFromFredCsv() in
 // app/src/lib/cmt.ts (which is unit-tested) — keep the two in sync.
 
-const SERIES = { cmt10yr: 'DGS10', cmt1yr: 'DGS1' };
+const SERIES = { cmt10yr: 'DGS10', cmt1yr: 'DGS1', mortgage30: 'MORTGAGE30US' };
 
 async function latest(seriesId) {
   // Limit to the last ~120 days so FRED returns a tiny CSV (the full series goes
@@ -45,7 +45,11 @@ async function latest(seriesId) {
 
 module.exports = async function handler(_req, res) {
   try {
-    const [ten, one] = await Promise.all([latest(SERIES.cmt10yr), latest(SERIES.cmt1yr)]);
+    const [ten, one, mort] = await Promise.all([
+      latest(SERIES.cmt10yr),
+      latest(SERIES.cmt1yr),
+      latest(SERIES.mortgage30),
+    ]);
     // FRED reports percent (4.38); the engine wants a decimal (0.0438). Round to
     // shed binary-float noise so the editable field shows a tidy value.
     const toDecimal = (pct) => Number((pct / 100).toFixed(6));
@@ -53,8 +57,9 @@ module.exports = async function handler(_req, res) {
     res.status(200).json({
       cmt10yr: toDecimal(ten.pct),
       cmt1yr: toDecimal(one.pct),
-      asOf: ten.date >= one.date ? ten.date : one.date,
-      source: 'FRED DGS10 / DGS1',
+      mortgage30: toDecimal(mort.pct),
+      asOf: [ten.date, one.date, mort.date].sort().pop(),
+      source: 'FRED DGS10 / DGS1 / MORTGAGE30US',
     });
   } catch (err) {
     res.status(502).json({ error: String((err && err.message) || err) });

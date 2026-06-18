@@ -73,6 +73,11 @@ export interface SimulationInputs {
   recoveryReturn: number; // annual return during the recovery years, e.g. 0.10
   recoveryYears: number; // length of the recovery (and the LOC bridge)
 
+  // HECM-vs-keep-mortgage comparison (used when existing liens are paid off)
+  existingLienRate: number; // interest rate on the mortgage being paid off
+  existingLienTermRemaining: number; // years left on that mortgage at closing
+  freedCashConsumed: boolean; // true = the avoided P&I is spent (lifestyle), not invested
+
   // Per-year schedules (index 0 = year 1). Beginning-of-year amounts.
   draws: number[];
   payments: number[];

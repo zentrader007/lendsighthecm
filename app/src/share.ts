@@ -68,6 +68,12 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
     crashPct: numOr(inp.crashPct, defaultInputs.crashPct),
     recoveryReturn: numOr(inp.recoveryReturn, defaultInputs.recoveryReturn),
     recoveryYears: numOr(inp.recoveryYears, defaultInputs.recoveryYears),
+    existingLienRate: numOr(inp.existingLienRate, defaultInputs.existingLienRate),
+    existingLienTermRemaining: numOr(
+      inp.existingLienTermRemaining,
+      defaultInputs.existingLienTermRemaining,
+    ),
+    freedCashConsumed: Boolean(inp.freedCashConsumed),
     beginningYear: numOr(inp.beginningYear, defaultInputs.beginningYear),
     projectionYears: numOr(inp.projectionYears, defaultInputs.projectionYears),
     costsInLoan: Boolean(inp.costsInLoan),

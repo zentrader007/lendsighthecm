@@ -108,12 +108,22 @@ export function RedesignAdvisor({
           ? `At this spending level the bridge does not help: even drawing from the credit line, the portfolio runs dry at age ${seq.bridgeDepletionAge}, while selling assets alone funds spending through age ${seqLast.age}. The standby line's capacity is finite — lower the spending or shorten the bridge.`
           : `Spending outruns both strategies: the portfolio depletes at age ${seq.sellDepletionAge} without the HECM and age ${seq.bridgeDepletionAge} with the bridge. Consider lower annual spending, or test a smaller market drop.`;
 
+  // The "cost of standby liquidity" framing only holds for a free-and-clear home.
+  // When the HECM paid off an existing mortgage, that mortgage's accrued payoff is
+  // inside the gap and would exist anyway in the no-HECM world — so reframe and
+  // point to the Net worth tab for the like-for-like comparison.
+  const standbyGap = r20.homeValue - r20.rmNetWorth;
+  const standbyInsight =
+    inp.existingLiens > 0
+      ? `If nothing further is drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Much of the ${usd(standbyGap)} gap to the HECM net worth (${usd(r20.rmNetWorth)}) is the accrued balance of the ${usd(inp.existingLiens)} mortgage the HECM paid off — which would still exist, and still accrue interest, if no reverse mortgage were taken. The Net worth tab nets that mortgage out for a like-for-like comparison. If the property is sold, the line of credit is no longer available.`
+      : `If nothing is ever drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Net worth with the HECM is ${usd(r20.rmNetWorth)} — the ${usd(standbyGap)} difference is the cost of standby liquidity, not lost wealth from borrowing. If the property is sold, the line of credit is no longer available.`;
+
   const insights: Record<StageView, string> = {
     loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(r85.availableLOC)} by age ${r85.age} — even if the home's value never changes.`,
     networth: `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(r85.rmNetWorth)} at age ${r85.age}, vs ${usd(r85.homeValue)} if no reverse mortgage were taken — a ${usd(r85.homeValue - r85.rmNetWorth)} difference from accrued borrowing and costs.`,
     equity: `At age ${r85.age} the home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity.`,
     invest: `By age ${r90.age}, investing the proceeds plus remaining equity totals ${usd(r90.investmentPlusEquity)}, vs ${usd(r90.equity)} from keeping equity alone.`,
-    standby: `If nothing is ever drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Net worth with the HECM is ${usd(r20.rmNetWorth)} — the ${usd(r20.homeValue - r20.rmNetWorth)} difference is the cost of standby liquidity, not lost wealth from borrowing. If the property is sold, the line of credit is no longer available.`,
+    standby: standbyInsight,
     seqrisk: seqInsight,
     table: 'Draw and Payment cells are editable — type a value and the entire projection updates instantly.',
   };
