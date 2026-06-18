@@ -44,9 +44,9 @@ export function HomeEquityChart({ projection }: { projection: ProjectionRow[] })
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
-          <Area type="monotone" dataKey="homeValue" name="Home Value" stroke="#4a7c9b" fill="#eef2f5" />
-          <Area type="monotone" dataKey="equity" name="Equity" stroke="#5b9f5b" fill="rgba(91,159,91,0.1)" />
-          <Area type="monotone" dataKey="upb" name="Loan Balance" stroke="#e07a5f" fill="rgba(224,122,95,0.1)" />
+          <Area type="monotone" dataKey="homeValue" name="Home Value" stroke="#4a7c9b" strokeWidth={2.5} fill="#eef2f5" />
+          <Area type="monotone" dataKey="equity" name="Equity" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
+          <Area type="monotone" dataKey="upb" name="Loan Balance" stroke="#e07a5f" strokeWidth={2.5} fill="rgba(224,122,95,0.1)" />
         </AreaChart>
       </ResponsiveContainer>
     </ChartCard>
