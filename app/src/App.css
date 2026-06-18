@@ -574,17 +574,13 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
 .seq-controls .field { background: #fff; }
 .seq-controls .field-input input[type='text'] { width: 84px; }
 
-/* Target-age control, shown on its own centered row inside the stat strip. */
+/* Target-age control, flowing inline in the stat strip (to the right of the
+   last stat) rather than on its own row. */
 .stat-target {
-  flex-basis: 100%;
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 6px 12px;
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-soft);
+  gap: 6px 10px;
 }
 .stat-target-label {
   display: inline-flex;
