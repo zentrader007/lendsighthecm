@@ -39,7 +39,7 @@ export const defaultInputs: SimulationInputs = {
   futureCMT10yr: 0.025,
   futureCMTMode: 'Assumed',
   investmentReturn: 0.06,
-  taxRateOnSoldAssets: 0.15, // long-term capital gains
+  taxRateOnSoldAssets: 0, // default 0%; advisor can set the client's rate
   portfolioValue: 1_000_000,
   annualSpending: 60_000,
   crashPct: 0.25,
