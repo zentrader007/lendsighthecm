@@ -93,7 +93,7 @@ export function InvestChart({ projection }: { projection: ProjectionRow[] }) {
 
 const NET_WORTH_LEGEND = [
   { name: 'Net Worth with HECM (after costs)', color: '#5b9f5b', dashed: false },
-  { name: 'Available cash at closing', color: '#d4854a', dashed: true },
+  { name: 'Cash drawn at closing', color: '#d4854a', dashed: true },
   { name: 'Home Value (No HECM)', color: '#1b2a4a', dashed: true },
 ];
 
@@ -152,7 +152,7 @@ export function NetWorthChart({
           <Legend content={() => <OrderedLegend items={NET_WORTH_LEGEND} />} />
           <Line type="monotone" dataKey="homeValue" name="Home Value (No HECM)" stroke="#1b2a4a" dot={false} strokeWidth={2} strokeDasharray="6 4" />
           <Line type="monotone" dataKey="rmNetWorth" name="Net Worth with HECM (after costs)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="cashAtClosing" name="Available cash at closing" stroke="#d4854a" dot={false} strokeWidth={2} strokeDasharray="2 4" />
+          <Line type="monotone" dataKey="cashAtClosing" name="Cash drawn at closing" stroke="#d4854a" dot={false} strokeWidth={2} strokeDasharray="2 4" />
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>
