@@ -10,6 +10,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
+  ReferenceDot,
 } from 'recharts';
 import type { ProjectionRow } from '../engine';
 import type { SequenceRow } from '../engine/sequence';
@@ -53,7 +55,13 @@ export function HomeEquityChart({ projection }: { projection: ProjectionRow[] })
   );
 }
 
-export function LocChart({ projection }: { projection: ProjectionRow[] }) {
+export function LocChart({
+  projection,
+  marker,
+}: {
+  projection: ProjectionRow[];
+  marker?: { age: number; availableLOC: number; equity: number };
+}) {
   const data = toData(projection);
   return (
     <ChartCard title="Available Line of Credit Growth">
@@ -68,6 +76,32 @@ export function LocChart({ projection }: { projection: ProjectionRow[] }) {
           <Area type="monotone" dataKey="equity" name="Equity" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
           <Line type="monotone" dataKey="availableLOC" name="Available LOC" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="totalPL" name="Total Principal Limit" stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
+          {marker && (
+            <>
+              <ReferenceLine
+                x={marker.age}
+                stroke="#1b2a4a"
+                strokeDasharray="4 4"
+                label={{ value: `Age ${marker.age}`, position: 'top', fontSize: 12, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
+              />
+              <ReferenceDot
+                x={marker.age}
+                y={marker.availableLOC}
+                r={4}
+                fill="#4a7c9b"
+                stroke="#fff"
+                label={{ value: fmtK(marker.availableLOC), position: 'right', fontSize: 12, fill: '#4a7c9b', fontFamily: 'DM Mono, monospace' }}
+              />
+              <ReferenceDot
+                x={marker.age}
+                y={marker.equity}
+                r={4}
+                fill="#5b9f5b"
+                stroke="#fff"
+                label={{ value: fmtK(marker.equity), position: 'right', fontSize: 12, fill: '#5b9f5b', fontFamily: 'DM Mono, monospace' }}
+              />
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>

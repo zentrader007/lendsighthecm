@@ -60,6 +60,7 @@ export function RedesignAdvisor({
   goConsumer,
 }: AdvisorProps) {
   const [stage, setStage] = useState<StageView>('loc');
+  const [targetAge, setTargetAge] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [live, setLive] = useState<{ status: 'idle' | 'loading' | 'ok' | 'error'; asOf?: string }>({
     status: 'idle',
@@ -103,6 +104,21 @@ export function RedesignAdvisor({
   const r90 = rowAt(90);
   // 20-year horizon for the standby-LOC story (or the last row if shorter).
   const r20 = result.projection[Math.min(20, result.projection.length - 1)];
+
+  // Optional target-age marker for the Credit line growth chart. Empty input or
+  // an age outside the projection range plots nothing.
+  const firstAge = result.projection[0].age;
+  const lastAge = result.projection[result.projection.length - 1].age;
+  const targetAgeNum = parseInt(targetAge, 10);
+  const locMarker =
+    Number.isFinite(targetAgeNum) && targetAgeNum >= firstAge && targetAgeNum <= lastAge
+      ? (() => {
+          const row =
+            result.projection.find((r) => r.age >= targetAgeNum) ??
+            result.projection[result.projection.length - 1];
+          return { age: row.age, availableLOC: row.availableLOC, equity: row.equity };
+        })()
+      : undefined;
 
   // Lien-aware two-world net-worth comparison (only meaningful when a mortgage
   // was paid off). residual[] feeds the honest standby baseline too.
@@ -238,7 +254,34 @@ export function RedesignAdvisor({
           />
         ) : (
           <Suspense fallback={<div className="chart-loading">Loading chart…</div>}>
-            {stage === 'loc' && <LocChart projection={result.projection} />}
+            {stage === 'loc' && (
+              <>
+                <div className="scenario-bar seq-controls">
+                  <label className="field">
+                    <span>
+                      Target age
+                      <InfoTip text="Enter an age to mark it on the chart — a vertical line shows the available credit line and home equity projected at that age. Leave blank for no marker." />
+                    </span>
+                    <div className="field-input">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="—"
+                        value={targetAge}
+                        onChange={(e) => setTargetAge(e.target.value.replace(/[^0-9]/g, ''))}
+                      />
+                    </div>
+                  </label>
+                  {locMarker && (
+                    <span className="target-readout">
+                      At age {locMarker.age}: <strong>{usd(locMarker.availableLOC)}</strong> available credit ·{' '}
+                      <strong>{usd(locMarker.equity)}</strong> home equity
+                    </span>
+                  )}
+                </div>
+                <LocChart projection={result.projection} marker={locMarker} />
+              </>
+            )}
             {stage === 'networth' &&
               (hasLien ? (
                 <>

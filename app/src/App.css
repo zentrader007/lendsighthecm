@@ -574,6 +574,13 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
 .seq-controls .field { background: #fff; }
 .seq-controls .field-input input[type='text'] { width: 84px; }
 
+.target-readout {
+  align-self: center;
+  font-size: 13px;
+  color: var(--text);
+}
+.target-readout strong { font-family: 'DM Mono', monospace; }
+
 .assumptions-btn {
   margin-left: auto;
   height: 36px;
