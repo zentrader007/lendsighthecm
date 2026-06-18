@@ -213,7 +213,7 @@ export function RedesignAdvisor({
         <Stat label="LOC start" value={usd(result.remainingCredit)} tip="Funds still available after the initial draw and costs — the starting line of credit, which grows over time." />
         <Stat label="Initial UPB" value={usd(result.initialUPB)} tip="Initial unpaid principal balance — the starting loan balance, including financed costs, liens paid off, and any initial cash draw." />
         <Stat label="Initial MIP" value={usd(result.initialMIP)} tip="Up-front FHA Mortgage Insurance Premium — 2% of the home's value (up to the HECM limit), paid at closing." />
-        <Stat label="Total costs" value={usd(result.totalLoanCost)} tip="All financed closing costs plus the initial MIP — the total cost rolled into the loan." />
+        <Stat label="Total costs" value={usd(result.totalCostAllIn)} tip="The all-in cost of the loan: financed closing costs and the initial MIP, plus out-of-pocket fees (counseling, appraisal, and any other POC items)." />
       </div>
 
       <div className="stage">

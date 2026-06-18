@@ -5,6 +5,7 @@ export interface DerivedCosts {
   initialMIP: number;
   calculatedOriginationFee: number;
   totalLoanCost: number; // sum of non-MIP in-loan costs + initial MIP
+  totalCostAllIn: number; // totalLoanCost + always-out-of-pocket fees (counseling, appraisal, other POC)
   pocCosts: number;
 }
 
@@ -49,18 +50,20 @@ export function deriveCosts(
     costs.other;
   const totalLoanCost = nonMIP + initialMIP;
 
-  // POC = counseling + appraisal POC + other POC + (total loan cost if NOT financed).
-  const pocCosts =
-    costs.counselingCost +
-    costs.appraisalPOC +
-    costs.otherPOCCosts +
-    (costsInLoan ? 0 : totalLoanCost);
+  // Fees always paid out of pocket (never financed), regardless of costsInLoan.
+  const alwaysPoc = costs.counselingCost + costs.appraisalPOC + costs.otherPOCCosts;
+  // POC = always-OOP fees + (total loan cost if NOT financed).
+  const pocCosts = alwaysPoc + (costsInLoan ? 0 : totalLoanCost);
+  // All-in cost of the loan = financed closing costs + always-OOP fees, the same
+  // whether or not the closing costs are financed.
+  const totalCostAllIn = totalLoanCost + alwaysPoc;
 
   return {
     effectiveHomeValue,
     initialMIP,
     calculatedOriginationFee,
     totalLoanCost,
+    totalCostAllIn,
     pocCosts,
   };
 }

@@ -45,7 +45,7 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
 
   // --- Costs ---
   const c = deriveCosts(homeValue, hecmLimit, inp.costs, costsInLoan);
-  const { effectiveHomeValue, initialMIP, totalLoanCost, calculatedOriginationFee, pocCosts } = c;
+  const { effectiveHomeValue, initialMIP, totalLoanCost, totalCostAllIn, calculatedOriginationFee, pocCosts } = c;
 
   // --- Principal limit & draws ---
   // A lender quote can override the table-derived limit so every downstream
@@ -244,6 +244,7 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     loanProjectedRate,
     initialMIP,
     totalLoanCost,
+    totalCostAllIn,
     calculatedOriginationFee,
     availableInitialDraw,
     initialUPB,

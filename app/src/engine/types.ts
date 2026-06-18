@@ -128,7 +128,8 @@ export interface SimulationResult {
   initialRate: number;
   loanProjectedRate: number;
   initialMIP: number;
-  totalLoanCost: number;
+  totalLoanCost: number; // financed closing costs + initial MIP
+  totalCostAllIn: number; // totalLoanCost + always-out-of-pocket fees (counseling, appraisal, other POC)
   calculatedOriginationFee: number;
   availableInitialDraw: number;
   initialUPB: number;
