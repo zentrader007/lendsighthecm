@@ -91,8 +91,54 @@ export function InvestChart({ projection }: { projection: ProjectionRow[] }) {
   );
 }
 
-export function NetWorthChart({ projection }: { projection: ProjectionRow[] }) {
-  const data = toData(projection);
+const NET_WORTH_LEGEND = [
+  { name: 'Net Worth with HECM (after costs)', color: '#5b9f5b', dashed: false },
+  { name: 'Available cash at closing', color: '#d4854a', dashed: true },
+  { name: 'Home Value (No HECM)', color: '#1b2a4a', dashed: true },
+];
+
+/** Centered legend rendered in an explicit order (recharts otherwise reorders). */
+function OrderedLegend({ items }: { items: typeof NET_WORTH_LEGEND }) {
+  return (
+    <ul
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: '4px 18px',
+        listStyle: 'none',
+        margin: 0,
+        padding: 0,
+        fontSize: 12,
+        fontFamily: 'DM Mono, monospace',
+        color: '#1b2a4a',
+      }}
+    >
+      {items.map((it) => (
+        <li key={it.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span
+            style={{
+              width: 16,
+              height: 0,
+              borderTop: `2px ${it.dashed ? 'dashed' : 'solid'} ${it.color}`,
+              display: 'inline-block',
+            }}
+          />
+          {it.name}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function NetWorthChart({
+  projection,
+  cashAtClosing = 0,
+}: {
+  projection: ProjectionRow[];
+  cashAtClosing?: number;
+}) {
+  const data = toData(projection).map((d) => ({ ...d, cashAtClosing }));
   return (
     <ChartCard title="Net Worth Over Time">
       <ResponsiveContainer width="100%" height="100%">
@@ -101,9 +147,12 @@ export function NetWorthChart({ projection }: { projection: ProjectionRow[] }) {
           <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
-          <Legend />
-          <Line type="monotone" dataKey="rmNetWorth" name="Net Worth with HECM (after costs)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
+          {/* Custom legend so "Available cash at closing" sits next to the
+              net-worth key (recharts' default legend orders by dataKey). */}
+          <Legend content={() => <OrderedLegend items={NET_WORTH_LEGEND} />} />
           <Line type="monotone" dataKey="homeValue" name="Home Value (No HECM)" stroke="#1b2a4a" dot={false} strokeWidth={2} strokeDasharray="6 4" />
+          <Line type="monotone" dataKey="rmNetWorth" name="Net Worth with HECM (after costs)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="cashAtClosing" name="Available cash at closing" stroke="#d4854a" dot={false} strokeWidth={2} strokeDasharray="2 4" />
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>

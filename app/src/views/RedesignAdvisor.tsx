@@ -258,7 +258,7 @@ export function RedesignAdvisor({
                   </p>
                 </>
               ) : (
-                <NetWorthChart projection={result.projection} />
+                <NetWorthChart projection={result.projection} cashAtClosing={inp.initialCashDraw} />
               ))}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} />}
             {stage === 'invest' && <InvestChart projection={result.projection} />}

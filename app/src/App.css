@@ -685,6 +685,8 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
   font-size: 14px;
   line-height: 1.55;
   color: var(--navy);
+  text-align: center;
+  font-weight: 600;
 }
 
 .projection-editable .sc-input { width: 92px; }
