@@ -77,16 +77,18 @@ export function InvestChart({ projection }: { projection: ProjectionRow[] }) {
   return (
     <ChartCard title="Equity Only vs. Invest-the-Proceeds (after tax)">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
+          {/* Shade the headline "invest the proceeds" outcome; draw Equity Only
+              on top as a clean line so it stays visible over the fill. */}
+          <Area type="monotone" dataKey="investmentPlusEquity" name="Investment + Equity" stroke="#4a7c9b" strokeWidth={2.5} fill="rgba(74,124,155,0.1)" />
           <Line type="monotone" dataKey="equityOnly" name="Equity Only" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="investmentPlusEquity" name="Investment + Equity" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="upb" name="Loan Balance" stroke="#e07a5f" dot={false} strokeWidth={2} strokeDasharray="6 4" />
-        </LineChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>
   );
