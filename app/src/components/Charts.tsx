@@ -58,15 +58,17 @@ export function LocChart({ projection }: { projection: ProjectionRow[] }) {
   return (
     <ChartCard title="Available Line of Credit Growth">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
+          {/* Equity, styled the same as the Equity vs. Balance tab. */}
+          <Area type="monotone" dataKey="equity" name="Equity" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
           <Line type="monotone" dataKey="availableLOC" name="Available LOC" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="totalPL" name="Total Principal Limit" stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
-        </LineChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>
   );
