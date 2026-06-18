@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react
 import type { SimulationInputs } from '../engine';
 import { defaultInputs } from '../engine/defaults';
 import { runSequenceAnalysis } from '../engine/sequence';
+import { runMortgageComparison } from '../engine/comparison';
 import { fetchLiveCMT } from '../lib/cmt';
 import { NumberField, SelectField, ToggleField } from '../components/Field';
 import { InfoTip } from '../components/InfoTip';
@@ -28,6 +29,9 @@ const NetWorthChart = lazy(() =>
 );
 const SequenceChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.SequenceChart })),
+);
+const MortgageComparisonChart = lazy(() =>
+  import('../components/Charts').then((m) => ({ default: m.MortgageComparisonChart })),
 );
 
 type StageView = 'loc' | 'networth' | 'equity' | 'invest' | 'standby' | 'seqrisk' | 'table';
@@ -70,7 +74,12 @@ export function RedesignAdvisor({
     setLive((s) => ({ ...s, status: 'loading' }));
     try {
       const data = await fetchLiveCMT();
-      setInp((p) => ({ ...p, cmt10yr: data.cmt10yr, cmt1yr: data.cmt1yr }));
+      setInp((p) => ({
+        ...p,
+        cmt10yr: data.cmt10yr,
+        cmt1yr: data.cmt1yr,
+        ...(data.mortgage30 ? { existingLienRate: data.mortgage30 } : {}),
+      }));
       setLive({ status: 'ok', asOf: data.asOf });
     } catch {
       setLive({ status: 'error' });
@@ -95,6 +104,13 @@ export function RedesignAdvisor({
   // 20-year horizon for the standby-LOC story (or the last row if shorter).
   const r20 = result.projection[Math.min(20, result.projection.length - 1)];
 
+  // Lien-aware two-world net-worth comparison (only meaningful when a mortgage
+  // was paid off). residual[] feeds the honest standby baseline too.
+  const hasLien = inp.existingLiens > 0;
+  const cmp = useMemo(() => runMortgageComparison(inp), [inp]);
+  const residual = useMemo(() => cmp.rows.map((r) => r.residualMortgage), [cmp]);
+  const cmpLast = cmp.rows[cmp.rows.length - 1];
+
   const seq = useMemo(() => runSequenceAnalysis(inp), [inp]);
   const seqLast = seq.rows[seq.rows.length - 1];
   const sellDies = seq.sellDepletionAge !== null;
@@ -118,9 +134,13 @@ export function RedesignAdvisor({
       ? `If nothing further is drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Much of the ${usd(standbyGap)} gap to the HECM net worth (${usd(r20.rmNetWorth)}) is the accrued balance of the ${usd(inp.existingLiens)} mortgage the HECM paid off — which would still exist, and still accrue interest, if no reverse mortgage were taken. The Net worth tab nets that mortgage out for a like-for-like comparison. If the property is sold, the line of credit is no longer available.`
       : `If nothing is ever drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Net worth with the HECM is ${usd(r20.rmNetWorth)} — the ${usd(standbyGap)} difference is the cost of standby liquidity, not lost wealth from borrowing. If the property is sold, the line of credit is no longer available.`;
 
+  const networthInsight = hasLien
+    ? `Like-for-like at age ${cmpLast.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpLast.netWorthNoHecm)} (${usd(cmpLast.homeEquityNoHecm)} home equity + ${usd(cmpLast.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpLast.netWorthHecm)} (${usd(cmpLast.homeEquityHecm)} home equity + ${usd(cmpLast.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? 'spent on lifestyle here, so the gain shows as cash flow, not wealth' : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
+    : `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(r85.rmNetWorth)} at age ${r85.age}, vs ${usd(r85.homeValue)} if no reverse mortgage were taken — a ${usd(r85.homeValue - r85.rmNetWorth)} difference from accrued borrowing and costs.`;
+
   const insights: Record<StageView, string> = {
     loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(r85.availableLOC)} by age ${r85.age} — even if the home's value never changes.`,
-    networth: `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(r85.rmNetWorth)} at age ${r85.age}, vs ${usd(r85.homeValue)} if no reverse mortgage were taken — a ${usd(r85.homeValue - r85.rmNetWorth)} difference from accrued borrowing and costs.`,
+    networth: networthInsight,
     equity: `At age ${r85.age} the home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity.`,
     invest: `By age ${r90.age}, investing the proceeds plus remaining equity totals ${usd(r90.investmentPlusEquity)}, vs ${usd(r90.equity)} from keeping equity alone.`,
     standby: standbyInsight,
@@ -219,10 +239,32 @@ export function RedesignAdvisor({
         ) : (
           <Suspense fallback={<div className="chart-loading">Loading chart…</div>}>
             {stage === 'loc' && <LocChart projection={result.projection} />}
-            {stage === 'networth' && <NetWorthChart projection={result.projection} />}
+            {stage === 'networth' &&
+              (hasLien ? (
+                <>
+                  <div className="scenario-bar seq-controls">
+                    <NumberField label="Mortgage rate" value={inp.existingLienRate} onChange={(v) => set('existingLienRate', v)} asPercent min={0} max={20} tip="Interest rate on the existing mortgage the HECM paid off. Auto-filled from the live 30yr rate; edit to the client's actual rate." />
+                    <NumberField label="Yrs left" value={inp.existingLienTermRemaining} onChange={(v) => set('existingLienTermRemaining', v)} min={0} max={40} tip="Years left on that mortgage at closing — used to amortize the residual balance in the no-HECM world." />
+                    <NumberField label="Portfolio" value={inp.portfolioValue} onChange={(v) => set('portfolioValue', v)} suffix="$" min={0} tip="The client's investment portfolio, which funds living spending in both worlds." />
+                    <NumberField label="Spending / yr" value={inp.annualSpending} onChange={(v) => set('annualSpending', v)} suffix="$" min={0} tip="Annual living expenses, funded equally in both worlds. The no-HECM world also pays the mortgage from this portfolio." />
+                    <ToggleField label="Spend freed payment?" value={inp.freedCashConsumed} onChange={(v) => set('freedCashConsumed', v)} tip="On: the client spends the money the HECM freed up (a lifestyle gain, not wealth). Off: that cash stays invested in the portfolio." />
+                  </div>
+                  <MortgageComparisonChart rows={cmp.rows} />
+                  <p className="chart-caption">
+                    Illustrative, equal-spending comparison: {pct(inp.existingLienRate, 2)} mortgage with{' '}
+                    {inp.existingLienTermRemaining} yrs left, {pct(inp.investmentReturn, 1)} portfolio return,{' '}
+                    {pct(inp.appreciation, 1)} appreciation. Freed payment is{' '}
+                    {inp.freedCashConsumed ? 'spent' : 'invested'}.
+                  </p>
+                </>
+              ) : (
+                <NetWorthChart projection={result.projection} />
+              ))}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} />}
             {stage === 'invest' && <InvestChart projection={result.projection} />}
-            {stage === 'standby' && <StandbyChart projection={result.projection} />}
+            {stage === 'standby' && (
+              <StandbyChart projection={result.projection} residual={hasLien ? residual : undefined} />
+            )}
             {stage === 'seqrisk' && (
               <>
                 <div className="scenario-bar seq-controls">
