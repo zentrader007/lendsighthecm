@@ -8,6 +8,7 @@ import {
   Tooltip,
 } from 'recharts';
 import type { SimulationInputs, SimulationResult } from '../engine';
+import { residualMortgage } from '../engine/comparison';
 import { usd } from '../format';
 
 const fmtK = (n: number) => `$${Math.round(n / 1000)}k`;
@@ -28,7 +29,14 @@ export function ConsumerView({
   const locAt85 = result.projection.find((r) => r.age === 85)?.availableLOC;
   // 20-year horizon for the standby safety-net story (or the last row if shorter).
   const r20 = result.projection[Math.min(20, result.projection.length - 1)];
-  const standbyCost = r20.homeValue - r20.rmNetWorth;
+  // When the HECM paid off a mortgage, the honest no-HECM baseline is home value
+  // net of the still-outstanding mortgage, not gross home value.
+  const hasLien = inputs.existingLiens > 0;
+  const residual20 = hasLien
+    ? residualMortgage(inputs.existingLiens, inputs.existingLienRate, inputs.existingLienTermRemaining, r20.year)
+    : 0;
+  const noHecmBaseline = Math.max(0, r20.homeValue - residual20);
+  const standbyCost = noHecmBaseline - r20.rmNetWorth;
 
   return (
     <div className="consumer">
@@ -115,9 +123,11 @@ export function ConsumerView({
           </div>
           <div className="consumer-standby-stat">
             <span className="consumer-standby-label">Without a reverse mortgage</span>
-            <span className="consumer-standby-value">{usd(r20.homeValue)}</span>
+            <span className="consumer-standby-value">{usd(noHecmBaseline)}</span>
             <span className="consumer-standby-note">
-              Your home's value — accessible only by selling or borrowing against it
+              {hasLien
+                ? `Your home's value (${usd(r20.homeValue)}) minus the roughly ${usd(residual20)} still owed on your current mortgage`
+                : "Your home's value — accessible only by selling or borrowing against it"}
             </span>
           </div>
           <div className="consumer-standby-stat">
