@@ -286,7 +286,10 @@ header h1 { font-size: 30px; margin: 0; color: var(--navy); letter-spacing: -0.0
 .projection th:nth-last-child(-n + 3) .infotip-bubble { left: auto; right: 0; }
 .projection th:nth-last-child(-n + 3) .infotip-bubble::after { left: auto; right: 14px; }
 table.projection { width: 100%; border-collapse: collapse; font-size: 13px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-table.projection th, table.projection td { padding: 8px 11px; text-align: right; white-space: nowrap; }
+table.projection th, table.projection td { padding: 7px 6px; text-align: right; white-space: nowrap; }
+/* Snug the header info icon to the title and shrink it a touch to save width. */
+.projection th .infotip { margin-left: 1px; }
+.projection th .infotip svg { width: 11px; height: 11px; }
 table.projection th {
   position: sticky;
   top: 0;
