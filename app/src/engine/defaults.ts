@@ -42,9 +42,9 @@ export const defaultInputs: SimulationInputs = {
   taxRateOnSoldAssets: 0.15, // long-term capital gains
   portfolioValue: 1_000_000,
   annualSpending: 60_000,
-  crashPct: 0.4,
+  crashPct: 0.25,
   recoveryReturn: 0.1,
-  recoveryYears: 4,
+  recoveryYears: 10,
   existingLienRate: 0.065, // editable; auto-filled from the live 30yr mortgage rate
   existingLienTermRemaining: 25,
   freedCashConsumed: false,
