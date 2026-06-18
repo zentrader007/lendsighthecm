@@ -230,6 +230,28 @@ export function RedesignAdvisor({
         <Stat label="Initial UPB" value={usd(result.initialUPB)} tip="Initial unpaid principal balance — the starting loan balance, including financed costs, liens paid off, and any initial cash draw." />
         <Stat label="Initial MIP" value={usd(result.initialMIP)} tip="Up-front FHA Mortgage Insurance Premium — 2% of the home's value (up to the HECM limit), paid at closing." />
         <Stat label="Total costs" value={usd(result.totalCostAllIn)} tip="The all-in cost of the loan: financed closing costs and the initial MIP, plus out-of-pocket fees (counseling, appraisal, and any other POC items)." />
+        {stage === 'loc' && (
+          <div className="stat-target">
+            <span className="stat-target-label">
+              Target age
+              <InfoTip text="Enter an age to mark it on the chart — a vertical line shows the available credit line and home equity projected at that age. Leave blank for no marker." />
+            </span>
+            <input
+              className="stat-target-input"
+              type="text"
+              inputMode="numeric"
+              placeholder="—"
+              value={targetAge}
+              onChange={(e) => setTargetAge(e.target.value.replace(/[^0-9]/g, ''))}
+            />
+            {locMarker && (
+              <span className="target-readout">
+                At age {locMarker.age}: <strong>{usd(locMarker.availableLOC)}</strong> available credit ·{' '}
+                <strong>{usd(locMarker.equity)}</strong> home equity
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="stage">
@@ -254,34 +276,7 @@ export function RedesignAdvisor({
           />
         ) : (
           <Suspense fallback={<div className="chart-loading">Loading chart…</div>}>
-            {stage === 'loc' && (
-              <>
-                <div className="scenario-bar seq-controls">
-                  <label className="field">
-                    <span>
-                      Target age
-                      <InfoTip text="Enter an age to mark it on the chart — a vertical line shows the available credit line and home equity projected at that age. Leave blank for no marker." />
-                    </span>
-                    <div className="field-input">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="—"
-                        value={targetAge}
-                        onChange={(e) => setTargetAge(e.target.value.replace(/[^0-9]/g, ''))}
-                      />
-                    </div>
-                  </label>
-                  {locMarker && (
-                    <span className="target-readout">
-                      At age {locMarker.age}: <strong>{usd(locMarker.availableLOC)}</strong> available credit ·{' '}
-                      <strong>{usd(locMarker.equity)}</strong> home equity
-                    </span>
-                  )}
-                </div>
-                <LocChart projection={result.projection} marker={locMarker} />
-              </>
-            )}
+            {stage === 'loc' && <LocChart projection={result.projection} marker={locMarker} />}
             {stage === 'networth' &&
               (hasLien ? (
                 <>
