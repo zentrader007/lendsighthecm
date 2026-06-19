@@ -50,7 +50,7 @@ const markerLine = (age: number) => (
     x={age}
     stroke="#1b2a4a"
     strokeDasharray="4 4"
-    label={{ value: `Age ${age}`, position: 'top', fontSize: 12, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
+    label={{ value: `Age ${age}`, position: 'insideTop', dy: 8, fontSize: 12, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
   />
 );
 
