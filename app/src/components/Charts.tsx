@@ -35,8 +35,39 @@ const toData = (projection: ProjectionRow[]) =>
     accessibleResources: r.accessibleResources,
   }));
 
-export function HomeEquityChart({ projection }: { projection: ProjectionRow[] }) {
+// Target-age marker shared by every chart: a vertical guide line at the chosen
+// age plus a labelled dot on each series. These are helper functions (not
+// components) so the returned elements keep their ReferenceLine / ReferenceDot
+// type — recharts only recognises those as direct children of the chart.
+function atAge<T extends { age: number }>(data: T[], targetAge?: number): T | undefined {
+  if (targetAge == null || !data.length) return undefined;
+  if (targetAge < data[0].age || targetAge > data[data.length - 1].age) return undefined;
+  return data.find((d) => d.age >= targetAge) ?? data[data.length - 1];
+}
+
+const markerLine = (age: number) => (
+  <ReferenceLine
+    x={age}
+    stroke="#1b2a4a"
+    strokeDasharray="4 4"
+    label={{ value: `Age ${age}`, position: 'top', fontSize: 12, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
+  />
+);
+
+const markerDot = (age: number, y: number, color: string) => (
+  <ReferenceDot
+    x={age}
+    y={y}
+    r={4}
+    fill={color}
+    stroke="#fff"
+    label={{ value: fmtK(y), position: 'right', fontSize: 12, fill: color, fontFamily: 'DM Mono, monospace' }}
+  />
+);
+
+export function HomeEquityChart({ projection, targetAge }: { projection: ProjectionRow[]; targetAge?: number }) {
   const data = toData(projection);
+  const m = atAge(data, targetAge);
   return (
     <ChartCard title="Home Value vs. Loan Balance vs. Equity">
       <ResponsiveContainer width="100%" height="100%">
@@ -49,20 +80,23 @@ export function HomeEquityChart({ projection }: { projection: ProjectionRow[] })
           <Area type="monotone" dataKey="homeValue" name="Home Value" stroke="#4a7c9b" strokeWidth={2.5} fill="#eef2f5" />
           <Area type="monotone" dataKey="equity" name="Equity" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
           <Area type="monotone" dataKey="upb" name="Loan Balance" stroke="#e07a5f" strokeWidth={2.5} fill="rgba(224,122,95,0.1)" />
+          {m && (
+            <>
+              {markerLine(m.age)}
+              {markerDot(m.age, m.homeValue, '#4a7c9b')}
+              {markerDot(m.age, m.equity, '#5b9f5b')}
+              {markerDot(m.age, m.upb, '#e07a5f')}
+            </>
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </ChartCard>
   );
 }
 
-export function LocChart({
-  projection,
-  marker,
-}: {
-  projection: ProjectionRow[];
-  marker?: { age: number; availableLOC: number; equity: number };
-}) {
+export function LocChart({ projection, targetAge }: { projection: ProjectionRow[]; targetAge?: number }) {
   const data = toData(projection);
+  const m = atAge(data, targetAge);
   return (
     <ChartCard title="Available Line of Credit Growth">
       <ResponsiveContainer width="100%" height="100%">
@@ -76,30 +110,11 @@ export function LocChart({
           <Area type="monotone" dataKey="equity" name="Equity" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
           <Line type="monotone" dataKey="availableLOC" name="Available LOC" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="totalPL" name="Total Principal Limit" stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
-          {marker && (
+          {m && (
             <>
-              <ReferenceLine
-                x={marker.age}
-                stroke="#1b2a4a"
-                strokeDasharray="4 4"
-                label={{ value: `Age ${marker.age}`, position: 'top', fontSize: 12, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
-              />
-              <ReferenceDot
-                x={marker.age}
-                y={marker.availableLOC}
-                r={4}
-                fill="#4a7c9b"
-                stroke="#fff"
-                label={{ value: fmtK(marker.availableLOC), position: 'right', fontSize: 12, fill: '#4a7c9b', fontFamily: 'DM Mono, monospace' }}
-              />
-              <ReferenceDot
-                x={marker.age}
-                y={marker.equity}
-                r={4}
-                fill="#5b9f5b"
-                stroke="#fff"
-                label={{ value: fmtK(marker.equity), position: 'right', fontSize: 12, fill: '#5b9f5b', fontFamily: 'DM Mono, monospace' }}
-              />
+              {markerLine(m.age)}
+              {markerDot(m.age, m.availableLOC, '#4a7c9b')}
+              {markerDot(m.age, m.equity, '#5b9f5b')}
             </>
           )}
         </ComposedChart>
@@ -108,8 +123,9 @@ export function LocChart({
   );
 }
 
-export function InvestChart({ projection }: { projection: ProjectionRow[] }) {
+export function InvestChart({ projection, targetAge }: { projection: ProjectionRow[]; targetAge?: number }) {
   const data = toData(projection);
+  const m = atAge(data, targetAge);
   return (
     <ChartCard title="Equity Only vs. Invest-the-Proceeds (after tax)">
       <ResponsiveContainer width="100%" height="100%">
@@ -124,6 +140,13 @@ export function InvestChart({ projection }: { projection: ProjectionRow[] }) {
           <Area type="monotone" dataKey="investmentPlusEquity" name="Investment + Equity" stroke="#4a7c9b" strokeWidth={2.5} fill="rgba(74,124,155,0.1)" />
           <Line type="monotone" dataKey="equityOnly" name="Equity Only" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="upb" name="Loan Balance" stroke="#e07a5f" dot={false} strokeWidth={2} strokeDasharray="6 4" />
+          {m && (
+            <>
+              {markerLine(m.age)}
+              {markerDot(m.age, m.investmentPlusEquity, '#4a7c9b')}
+              {markerDot(m.age, m.equityOnly, '#5b9f5b')}
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -173,11 +196,14 @@ function OrderedLegend({ items }: { items: typeof NET_WORTH_LEGEND }) {
 export function NetWorthChart({
   projection,
   cashAtClosing = 0,
+  targetAge,
 }: {
   projection: ProjectionRow[];
   cashAtClosing?: number;
+  targetAge?: number;
 }) {
   const data = toData(projection).map((d) => ({ ...d, cashAtClosing }));
+  const m = atAge(data, targetAge);
   return (
     <ChartCard title="Net Worth Over Time">
       <ResponsiveContainer width="100%" height="100%">
@@ -194,13 +220,20 @@ export function NetWorthChart({
           <Area type="monotone" dataKey="rmNetWorth" name="Net Worth with HECM (after costs)" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
           <Line type="monotone" dataKey="homeValue" name="Home Value (No HECM)" stroke="#1b2a4a" dot={false} strokeWidth={2} strokeDasharray="6 4" />
           <Line type="monotone" dataKey="cashAtClosing" name="Cash drawn at closing" stroke="#d4854a" dot={false} strokeWidth={2} strokeDasharray="2 4" />
+          {m && (
+            <>
+              {markerLine(m.age)}
+              {markerDot(m.age, m.rmNetWorth, '#5b9f5b')}
+              {markerDot(m.age, m.homeValue, '#1b2a4a')}
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>
   );
 }
 
-export function StandbyChart({ projection }: { projection: ProjectionRow[] }) {
+export function StandbyChart({ projection, targetAge }: { projection: ProjectionRow[]; targetAge?: number }) {
   // Pure liquidity story: the two distinct ways the client can reach cash — borrow
   // against the growing line of credit (without selling) or sell for the equity.
   // These are alternatives, not a sum, so they are plotted as separate lines. Net
@@ -210,6 +243,7 @@ export function StandbyChart({ projection }: { projection: ProjectionRow[] }) {
     availableLOC: r.availableLOC,
     equity: r.equity,
   }));
+  const m = atAge(data, targetAge);
   return (
     <ChartCard title="Standby LOC Strategy: Liquidity You Can Tap">
       <ResponsiveContainer width="100%" height="100%">
@@ -221,18 +255,26 @@ export function StandbyChart({ projection }: { projection: ProjectionRow[] }) {
           <Legend />
           <Line type="monotone" dataKey="availableLOC" name="Available credit line (borrow, don't sell)" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="equity" name="Home equity (access by selling)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
+          {m && (
+            <>
+              {markerLine(m.age)}
+              {markerDot(m.age, m.availableLOC, '#4a7c9b')}
+              {markerDot(m.age, m.equity, '#5b9f5b')}
+            </>
+          )}
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>
   );
 }
 
-export function MortgageComparisonChart({ rows }: { rows: ComparisonRow[] }) {
+export function MortgageComparisonChart({ rows, targetAge }: { rows: ComparisonRow[]; targetAge?: number }) {
   const data = rows.map((r) => ({
     age: r.age,
     netWorthHecm: r.netWorthHecm,
     netWorthNoHecm: r.netWorthNoHecm,
   }));
+  const m = atAge(data, targetAge);
   return (
     <ChartCard title="Net Worth: HECM (mortgage paid off) vs. Keeping the Mortgage">
       <ResponsiveContainer width="100%" height="100%">
@@ -244,19 +286,27 @@ export function MortgageComparisonChart({ rows }: { rows: ComparisonRow[] }) {
           <Legend />
           <Line type="monotone" dataKey="netWorthHecm" name="Net worth — HECM (mortgage paid off)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="netWorthNoHecm" name="Net worth — keep the mortgage" stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
+          {m && (
+            <>
+              {markerLine(m.age)}
+              {markerDot(m.age, m.netWorthHecm, '#5b9f5b')}
+              {markerDot(m.age, m.netWorthNoHecm, '#1b2a4a')}
+            </>
+          )}
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>
   );
 }
 
-export function SequenceChart({ rows }: { rows: SequenceRow[] }) {
+export function SequenceChart({ rows, targetAge }: { rows: SequenceRow[]; targetAge?: number }) {
   const data = rows.map((r) => ({
     age: r.age,
     portfolioBridge: r.portfolioBridge,
     portfolioSell: r.portfolioSell,
     hecmDebt: r.hecmDebt,
   }));
+  const m = atAge(data, targetAge);
   return (
     <ChartCard title="Sequence Risk: Bridge Spending from the LOC vs. Sell Assets in a Downturn">
       <ResponsiveContainer width="100%" height="100%">
@@ -271,6 +321,13 @@ export function SequenceChart({ rows }: { rows: SequenceRow[] }) {
           <Area type="monotone" dataKey="portfolioBridge" name="Portfolio — bridge from LOC" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
           <Line type="monotone" dataKey="portfolioSell" name="Portfolio — sell assets (no HECM)" stroke="#e07a5f" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="hecmDebt" name="HECM loan balance" stroke="#1b2a4a" dot={false} strokeWidth={2} strokeDasharray="6 4" />
+          {m && (
+            <>
+              {markerLine(m.age)}
+              {markerDot(m.age, m.portfolioBridge, '#5b9f5b')}
+              {markerDot(m.age, m.portfolioSell, '#e07a5f')}
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </ChartCard>

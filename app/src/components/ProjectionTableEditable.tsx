@@ -12,12 +12,23 @@ export function ProjectionTableEditable({
   draws,
   payments,
   onChange,
+  highlightAge,
 }: {
   projection: ProjectionRow[];
   draws: number[];
   payments: number[];
   onChange: (draws: number[], payments: number[]) => void;
+  highlightAge?: number;
 }) {
+  // The row to highlight is the first at/after the target age (matching how the
+  // charts snap their marker), or undefined when the age is out of range.
+  const highlightYear =
+    highlightAge != null &&
+    projection.length > 0 &&
+    highlightAge >= projection[0].age &&
+    highlightAge <= projection[projection.length - 1].age
+      ? (projection.find((r) => r.age >= highlightAge) ?? projection[projection.length - 1]).year
+      : undefined;
   const setDraw = (i: number, v: number) => {
     const next = draws.slice();
     next[i] = v;
@@ -51,7 +62,7 @@ export function ProjectionTableEditable({
         </thead>
         <tbody>
           {projection.map((r) => (
-            <tr key={r.year}>
+            <tr key={r.year} className={r.year === highlightYear ? 'row-target' : undefined}>
               <td>{r.age}</td>
               <td>{r.year}</td>
               <td>

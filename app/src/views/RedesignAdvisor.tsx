@@ -105,20 +105,17 @@ export function RedesignAdvisor({
   // 20-year horizon for the standby-LOC story (or the last row if shorter).
   const r20 = result.projection[Math.min(20, result.projection.length - 1)];
 
-  // Optional target-age marker for the Credit line growth chart. Empty input or
-  // an age outside the projection range plots nothing.
+  // Target-age marker shared by every chart and the Year table. An empty input or
+  // an age outside the projection range plots/highlights nothing.
   const firstAge = result.projection[0].age;
   const lastAge = result.projection[result.projection.length - 1].age;
   const targetAgeNum = parseInt(targetAge, 10);
-  const locMarker =
-    Number.isFinite(targetAgeNum) && targetAgeNum >= firstAge && targetAgeNum <= lastAge
-      ? (() => {
-          const row =
-            result.projection.find((r) => r.age >= targetAgeNum) ??
-            result.projection[result.projection.length - 1];
-          return { age: row.age, availableLOC: row.availableLOC, equity: row.equity };
-        })()
-      : undefined;
+  const targetValid =
+    Number.isFinite(targetAgeNum) && targetAgeNum >= firstAge && targetAgeNum <= lastAge;
+  const markerAge = targetValid ? targetAgeNum : undefined;
+  const atTarget = <T extends { age: number }>(rows: T[]): T | undefined =>
+    targetValid ? (rows.find((r) => r.age >= targetAgeNum) ?? rows[rows.length - 1]) : undefined;
+  const tRow = atTarget(result.projection);
 
   // Lien-aware two-world net-worth comparison (only meaningful when a mortgage
   // was paid off). residual[] feeds the honest standby baseline too.
@@ -128,6 +125,34 @@ export function RedesignAdvisor({
 
   const seq = useMemo(() => runSequenceAnalysis(inp), [inp]);
   const seqLast = seq.rows[seq.rows.length - 1];
+
+  // Values at the marked age for the active chart, echoed beside the input.
+  const tSeq = atTarget(seq.rows);
+  const tCmp = atTarget(cmp.rows);
+  const targetReadoutFor = (s: StageView) => {
+    if (!tRow) return null;
+    switch (s) {
+      case 'loc':
+        return <>{usd(tRow.availableLOC)} available credit · {usd(tRow.equity)} home equity</>;
+      case 'networth':
+        return hasLien && tCmp ? (
+          <>{usd(tCmp.netWorthHecm)} net worth with HECM · {usd(tCmp.netWorthNoHecm)} keeping the mortgage</>
+        ) : (
+          <>{usd(tRow.rmNetWorth)} net worth with HECM · {usd(tRow.homeValue)} home value (no HECM)</>
+        );
+      case 'equity':
+        return <>{usd(tRow.homeValue)} home value · {usd(tRow.upb)} loan balance · {usd(tRow.equity)} equity</>;
+      case 'invest':
+        return <>{usd(tRow.investmentPlusEquity)} invest + equity · {usd(tRow.equity)} equity only</>;
+      case 'standby':
+        return <>{usd(tRow.availableLOC)} credit line · {usd(tRow.equity)} home equity</>;
+      case 'seqrisk':
+        return tSeq ? <>{usd(tSeq.portfolioBridge)} bridge from LOC · {usd(tSeq.portfolioSell)} sell assets</> : null;
+      case 'table':
+        return <>row highlighted in the table below</>;
+    }
+  };
+  const targetReadout = targetReadoutFor(stage);
   const sellDies = seq.sellDepletionAge !== null;
   const bridgeDies = seq.bridgeDepletionAge !== null;
   const seqInsight =
@@ -225,28 +250,23 @@ export function RedesignAdvisor({
         <Stat label="Initial UPB" value={usd(result.initialUPB)} tip="Initial unpaid principal balance — the starting loan balance, including financed costs, liens paid off, and any initial cash draw." />
         <Stat label="Initial MIP" value={usd(result.initialMIP)} tip="Up-front FHA Mortgage Insurance Premium — 2% of the home's value (up to the HECM limit), paid at closing." />
         <Stat label="Total costs" value={usd(result.totalCostAllIn)} tip="The all-in cost of the loan: financed closing costs and the initial MIP, plus out-of-pocket fees (counseling, appraisal, and any other POC items)." />
-        {stage === 'loc' && (
-          <div className="stat-target">
-            <span className="stat-target-label">
-              Target age
-              <InfoTip text="Enter an age to mark it on the chart — a vertical line shows the available credit line and home equity projected at that age. Leave blank for no marker." />
-            </span>
-            <input
-              className="stat-target-input"
-              type="text"
-              inputMode="numeric"
-              placeholder="—"
-              value={targetAge}
-              onChange={(e) => setTargetAge(e.target.value.replace(/[^0-9]/g, ''))}
-            />
-            {locMarker && (
-              <span className="target-readout">
-                At age {locMarker.age}: <strong>{usd(locMarker.availableLOC)}</strong> available credit ·{' '}
-                <strong>{usd(locMarker.equity)}</strong> home equity
-              </span>
-            )}
-          </div>
-        )}
+        <div className="stat-target">
+          <span className="stat-target-label">
+            Target age
+            <InfoTip text="Enter an age to mark it across every chart and highlight that row in the Year table, showing the projected values at that age. Leave blank for no marker." />
+          </span>
+          <input
+            className="stat-target-input"
+            type="text"
+            inputMode="numeric"
+            placeholder="—"
+            value={targetAge}
+            onChange={(e) => setTargetAge(e.target.value.replace(/[^0-9]/g, ''))}
+          />
+          {tRow && targetReadout && (
+            <span className="target-readout">At age {tRow.age}: {targetReadout}</span>
+          )}
+        </div>
       </div>
 
       <div className="stage">
@@ -268,10 +288,11 @@ export function RedesignAdvisor({
             draws={inp.draws}
             payments={inp.payments}
             onChange={(draws, payments) => setInp((p) => ({ ...p, draws, payments }))}
+            highlightAge={markerAge}
           />
         ) : (
           <Suspense fallback={<div className="chart-loading">Loading chart…</div>}>
-            {stage === 'loc' && <LocChart projection={result.projection} marker={locMarker} />}
+            {stage === 'loc' && <LocChart projection={result.projection} targetAge={markerAge} />}
             {stage === 'networth' &&
               (hasLien ? (
                 <>
@@ -282,7 +303,7 @@ export function RedesignAdvisor({
                     <NumberField label="Spending / yr" value={inp.annualSpending} onChange={(v) => set('annualSpending', v)} suffix="$" min={0} tip="Annual living expenses, funded equally in both worlds. The no-HECM world also pays the mortgage from this portfolio." />
                     <ToggleField label="Spend freed payment?" value={inp.freedCashConsumed} onChange={(v) => set('freedCashConsumed', v)} tip="On: the client spends the money the HECM freed up (a lifestyle gain, not wealth). Off: that cash stays invested in the portfolio." />
                   </div>
-                  <MortgageComparisonChart rows={cmp.rows} />
+                  <MortgageComparisonChart rows={cmp.rows} targetAge={markerAge} />
                   <p className="chart-caption">
                     Illustrative, equal-spending comparison: {pct(inp.existingLienRate, 2)} mortgage with{' '}
                     {inp.existingLienTermRemaining} yrs left, {pct(inp.investmentReturn, 1)} portfolio return,{' '}
@@ -291,11 +312,11 @@ export function RedesignAdvisor({
                   </p>
                 </>
               ) : (
-                <NetWorthChart projection={result.projection} cashAtClosing={inp.initialCashDraw} />
+                <NetWorthChart projection={result.projection} cashAtClosing={inp.initialCashDraw} targetAge={markerAge} />
               ))}
-            {stage === 'equity' && <HomeEquityChart projection={result.projection} />}
-            {stage === 'invest' && <InvestChart projection={result.projection} />}
-            {stage === 'standby' && <StandbyChart projection={result.projection} />}
+            {stage === 'equity' && <HomeEquityChart projection={result.projection} targetAge={markerAge} />}
+            {stage === 'invest' && <InvestChart projection={result.projection} targetAge={markerAge} />}
+            {stage === 'standby' && <StandbyChart projection={result.projection} targetAge={markerAge} />}
             {stage === 'seqrisk' && (
               <>
                 <div className="scenario-bar seq-controls">
@@ -305,7 +326,7 @@ export function RedesignAdvisor({
                   <NumberField label="Recovery return" value={inp.recoveryReturn} onChange={(v) => set('recoveryReturn', v)} asPercent min={-20} max={30} tip="Annual portfolio return during the recovery years. After recovery, the Assumed Inv. Return applies." />
                   <NumberField label="Recovery yrs" value={inp.recoveryYears} onChange={(v) => set('recoveryYears', v)} min={0} max={10} tip="How long the recovery lasts — also the years spending is bridged from the credit line instead of the portfolio." />
                 </div>
-                <SequenceChart rows={seq.rows} />
+                <SequenceChart rows={seq.rows} targetAge={markerAge} />
                 <p className="chart-caption">
                   Illustrative only — models one user-defined market path (a single drop, then
                   recovery), not a Monte Carlo or probabilistic forecast.
