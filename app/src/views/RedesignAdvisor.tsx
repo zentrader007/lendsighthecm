@@ -124,7 +124,6 @@ export function RedesignAdvisor({
   // was paid off). residual[] feeds the honest standby baseline too.
   const hasLien = inp.existingLiens > 0;
   const cmp = useMemo(() => runMortgageComparison(inp), [inp]);
-  const residual = useMemo(() => cmp.rows.map((r) => r.residualMortgage), [cmp]);
   const cmpLast = cmp.rows[cmp.rows.length - 1];
 
   const seq = useMemo(() => runSequenceAnalysis(inp), [inp]);
@@ -140,15 +139,11 @@ export function RedesignAdvisor({
           ? `At this spending level the bridge does not help: even drawing from the credit line, the portfolio runs dry at age ${seq.bridgeDepletionAge}, while selling assets alone funds spending through age ${seqLast.age}. The standby line's capacity is finite — lower the spending or shorten the bridge.`
           : `Spending outruns both strategies: the portfolio depletes at age ${seq.sellDepletionAge} without the HECM and age ${seq.bridgeDepletionAge} with the bridge. Consider lower annual spending, or test a smaller market drop.`;
 
-  // The "cost of standby liquidity" framing only holds for a free-and-clear home.
-  // When the HECM paid off an existing mortgage, that mortgage's accrued payoff is
-  // inside the gap and would exist anyway in the no-HECM world — so reframe and
-  // point to the Net worth tab for the like-for-like comparison.
-  const standbyGap = r20.homeValue - r20.rmNetWorth;
-  const standbyInsight =
-    inp.existingLiens > 0
-      ? `If nothing further is drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Much of the ${usd(standbyGap)} gap to the HECM net worth (${usd(r20.rmNetWorth)}) is the accrued balance of the ${usd(inp.existingLiens)} mortgage the HECM paid off — which would still exist, and still accrue interest, if no reverse mortgage were taken. The Net worth tab nets that mortgage out for a like-for-like comparison. If the property is sold, the line of credit is no longer available.`
-      : `If nothing is ever drawn, by age ${r20.age} the client can access ${usd(r20.accessibleResources)} (${usd(r20.equity)} equity OR ${usd(r20.availableLOC)} credit line) vs ${usd(r20.homeValue)} with no reverse mortgage. Net worth with the HECM is ${usd(r20.rmNetWorth)} — the ${usd(standbyGap)} difference is the cost of standby liquidity, not lost wealth from borrowing. If the property is sold, the line of credit is no longer available.`;
+  // Standby tab is a pure liquidity story: how much the client can tap via the
+  // growing line of credit (without selling) or by selling for the equity. These
+  // are alternatives, not a sum. Net-worth questions — including any mortgage the
+  // HECM paid off — belong on the Net worth tab.
+  const standbyInsight = `Left untouched, the standby line of credit grows to ${usd(r20.availableLOC)} by age ${r20.age} — money the client can borrow without selling the home — versus ${usd(r20.equity)} of equity they'd reach by selling instead. The credit line grows on its own schedule regardless of the home's value, so in a flat market it can outgrow equity. This is standby liquidity, not extra net worth: drawing on the line adds to the loan balance, and if the home is sold the line is no longer available.${inp.existingLiens > 0 ? ' For a like-for-like net-worth comparison that nets out the mortgage the HECM paid off, see the Net worth tab.' : ''}`;
 
   const networthInsight = hasLien
     ? `Like-for-like at age ${cmpLast.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpLast.netWorthNoHecm)} (${usd(cmpLast.homeEquityNoHecm)} home equity + ${usd(cmpLast.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpLast.netWorthHecm)} (${usd(cmpLast.homeEquityHecm)} home equity + ${usd(cmpLast.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? 'spent on lifestyle here, so the gain shows as cash flow, not wealth' : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
@@ -300,9 +295,7 @@ export function RedesignAdvisor({
               ))}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} />}
             {stage === 'invest' && <InvestChart projection={result.projection} />}
-            {stage === 'standby' && (
-              <StandbyChart projection={result.projection} residual={hasLien ? residual : undefined} />
-            )}
+            {stage === 'standby' && <StandbyChart projection={result.projection} />}
             {stage === 'seqrisk' && (
               <>
                 <div className="scenario-bar seq-controls">

@@ -200,24 +200,18 @@ export function NetWorthChart({
   );
 }
 
-export function StandbyChart({
-  projection,
-  residual,
-}: {
-  projection: ProjectionRow[];
-  residual?: number[];
-}) {
-  // When the HECM paid off a mortgage, the honest no-HECM baseline is home value
-  // net of the still-outstanding mortgage, not gross home value.
-  const data = projection.map((r, i) => ({
+export function StandbyChart({ projection }: { projection: ProjectionRow[] }) {
+  // Pure liquidity story: the two distinct ways the client can reach cash — borrow
+  // against the growing line of credit (without selling) or sell for the equity.
+  // These are alternatives, not a sum, so they are plotted as separate lines. Net
+  // worth (and any lien the HECM paid off) lives on the Net worth tab.
+  const data = projection.map((r) => ({
     age: r.age,
-    accessibleResources: r.accessibleResources,
-    rmNetWorth: r.rmNetWorth,
-    noHecmBaseline: residual ? Math.max(0, r.homeValue - (residual[i] ?? 0)) : r.homeValue,
+    availableLOC: r.availableLOC,
+    equity: r.equity,
   }));
-  const baselineLabel = residual ? 'Home equity (No HECM, net of mortgage)' : 'Home Value (No HECM)';
   return (
-    <ChartCard title="Standby LOC Strategy: Liquidity vs. Net Worth">
+    <ChartCard title="Standby LOC Strategy: Liquidity You Can Tap">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
@@ -225,9 +219,8 @@ export function StandbyChart({
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
-          <Line type="monotone" dataKey="accessibleResources" name="Accessible Resources (Equity + LOC)" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="noHecmBaseline" name={baselineLabel} stroke="#1b2a4a" dot={false} strokeWidth={2} />
-          <Line type="monotone" dataKey="rmNetWorth" name="Net Worth with HECM (after costs)" stroke="#e07a5f" dot={false} strokeWidth={2} strokeDasharray="6 4" />
+          <Line type="monotone" dataKey="availableLOC" name="Available credit line (borrow, don't sell)" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="equity" name="Home equity (access by selling)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>
