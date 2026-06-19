@@ -50,10 +50,13 @@ const markerLine = (age: number) => (
     x={age}
     stroke="#1b2a4a"
     strokeDasharray="4 4"
-    label={{ value: `Age ${age}`, position: 'insideTop', dy: 8, fontSize: 12, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
+    label={{ value: `Age ${age}`, position: 'insideTop', dy: 8, fontSize: 12, fontWeight: 700, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
   />
 );
 
+// The dot's value label is drawn just above-right of the dot with a white halo
+// (paint-order stroke) so it stays legible where it crosses a chart line.
+type DotViewBox = { cx?: number; cy?: number; x?: number; y?: number; width?: number; height?: number };
 const markerDot = (age: number, y: number, color: string) => (
   <ReferenceDot
     x={age}
@@ -61,7 +64,27 @@ const markerDot = (age: number, y: number, color: string) => (
     r={4}
     fill={color}
     stroke="#fff"
-    label={{ value: fmtK(y), position: 'right', fontSize: 12, fill: color, fontFamily: 'DM Mono, monospace' }}
+    label={(p: { viewBox?: DotViewBox }) => {
+      const vb = p.viewBox ?? {};
+      const cx = vb.cx ?? (vb.x ?? 0) + (vb.width ?? 0) / 2;
+      const cy = vb.cy ?? (vb.y ?? 0) + (vb.height ?? 0) / 2;
+      return (
+        <text
+          x={cx + 6}
+          y={cy - 9}
+          fontSize={12}
+          fontWeight={700}
+          fontFamily="DM Mono, monospace"
+          fill={color}
+          stroke="#fff"
+          strokeWidth={3}
+          paintOrder="stroke"
+          textAnchor="start"
+        >
+          {fmtK(y)}
+        </text>
+      );
+    }}
   />
 );
 
@@ -73,8 +96,8 @@ export function HomeEquityChart({ projection, targetAge }: { projection: Project
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
           <Area type="monotone" dataKey="homeValue" name="Home Value" stroke="#4a7c9b" strokeWidth={2.5} fill="#eef2f5" />
@@ -102,8 +125,8 @@ export function LocChart({ projection, targetAge }: { projection: ProjectionRow[
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
           {/* Equity, styled the same as the Equity vs. Balance tab. */}
@@ -131,8 +154,8 @@ export function InvestChart({ projection, targetAge }: { projection: ProjectionR
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
           {/* Shade the headline "invest the proceeds" outcome; draw Equity Only
@@ -209,8 +232,8 @@ export function NetWorthChart({
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           {/* Custom legend so "Available cash at closing" sits next to the
               net-worth key (recharts' default legend orders by dataKey). */}
@@ -249,8 +272,8 @@ export function StandbyChart({ projection, targetAge }: { projection: Projection
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
           <Line type="monotone" dataKey="availableLOC" name="Available credit line (borrow, don't sell)" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
@@ -280,8 +303,8 @@ export function MortgageComparisonChart({ rows, targetAge }: { rows: ComparisonR
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
           <Line type="monotone" dataKey="netWorthHecm" name="Net worth — HECM (mortgage paid off)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
@@ -312,8 +335,8 @@ export function SequenceChart({ rows, targetAge }: { rows: SequenceRow[]; target
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
           {/* Shade the headline strategy (bridge from LOC); draw the sell-assets
