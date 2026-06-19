@@ -50,7 +50,7 @@ const markerLine = (age: number) => (
     x={age}
     stroke="#1b2a4a"
     strokeDasharray="4 4"
-    label={{ value: `Age ${age}`, position: 'insideTop', dy: 8, fontSize: 12, fontWeight: 700, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
+    label={{ value: `Age ${age}`, position: 'top', fontSize: 12, fontWeight: 700, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
   />
 );
 
@@ -94,7 +94,7 @@ export function HomeEquityChart({ projection, targetAge }: { projection: Project
   return (
     <ChartCard title="Home Value vs. Loan Balance vs. Equity">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
@@ -123,7 +123,7 @@ export function LocChart({ projection, targetAge }: { projection: ProjectionRow[
   return (
     <ChartCard title="Available Line of Credit Growth">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
@@ -152,7 +152,7 @@ export function InvestChart({ projection, targetAge }: { projection: ProjectionR
   return (
     <ChartCard title="Equity Only vs. Invest-the-Proceeds (after tax)">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
@@ -230,7 +230,7 @@ export function NetWorthChart({
   return (
     <ChartCard title="Net Worth Over Time">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
@@ -270,7 +270,7 @@ export function StandbyChart({ projection, targetAge }: { projection: Projection
   return (
     <ChartCard title="Standby LOC Strategy: Liquidity You Can Tap">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
@@ -301,7 +301,7 @@ export function MortgageComparisonChart({ rows, targetAge }: { rows: ComparisonR
   return (
     <ChartCard title="Net Worth: HECM (mortgage paid off) vs. Keeping the Mortgage">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
@@ -333,7 +333,7 @@ export function SequenceChart({ rows, targetAge }: { rows: SequenceRow[]; target
   return (
     <ChartCard title="Sequence Risk: Bridge Spending from the LOC vs. Sell Assets in a Downturn">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
