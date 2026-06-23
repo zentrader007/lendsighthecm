@@ -88,11 +88,11 @@ const markerDot = (age: number, y: number, color: string) => (
   />
 );
 
-export function HomeEquityChart({ projection, targetAge }: { projection: ProjectionRow[]; targetAge?: number }) {
+export function HomeEquityChart({ projection, targetAge, consumer }: { projection: ProjectionRow[]; targetAge?: number; consumer?: boolean }) {
   const data = toData(projection);
   const m = atAge(data, targetAge);
   return (
-    <ChartCard title="Home Value vs. Loan Balance vs. Equity">
+    <ChartCard title={consumer ? 'Your home value, loan balance, and equity' : 'Home Value vs. Loan Balance vs. Equity'}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
@@ -117,11 +117,11 @@ export function HomeEquityChart({ projection, targetAge }: { projection: Project
   );
 }
 
-export function LocChart({ projection, targetAge }: { projection: ProjectionRow[]; targetAge?: number }) {
+export function LocChart({ projection, targetAge, consumer }: { projection: ProjectionRow[]; targetAge?: number; consumer?: boolean }) {
   const data = toData(projection);
   const m = atAge(data, targetAge);
   return (
-    <ChartCard title="Available Line of Credit Growth">
+    <ChartCard title={consumer ? 'Your line of credit grows over time' : 'Available Line of Credit Growth'}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
@@ -130,9 +130,9 @@ export function LocChart({ projection, targetAge }: { projection: ProjectionRow[
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
           {/* Equity, styled the same as the Equity vs. Balance tab. */}
-          <Area type="monotone" dataKey="equity" name="Equity" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
-          <Line type="monotone" dataKey="availableLOC" name="Available LOC" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="totalPL" name="Total Principal Limit" stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
+          <Area type="monotone" dataKey="equity" name={consumer ? 'Home equity' : 'Equity'} stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
+          <Line type="monotone" dataKey="availableLOC" name={consumer ? 'Available line of credit' : 'Available LOC'} stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="totalPL" name={consumer ? 'Total funds available' : 'Total Principal Limit'} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
           {m && (
             <>
               {markerLine(m.age)}
@@ -182,6 +182,12 @@ const NET_WORTH_LEGEND = [
   { name: 'Home Value (No HECM)', color: '#1b2a4a', dashed: true },
 ];
 
+const NET_WORTH_LEGEND_CONSUMER = [
+  { name: 'Your net worth with the reverse mortgage', color: '#5b9f5b', dashed: false },
+  { name: 'Cash taken at closing', color: '#d4854a', dashed: true },
+  { name: 'Home value (no reverse mortgage)', color: '#1b2a4a', dashed: true },
+];
+
 /** Centered legend rendered in an explicit order (recharts otherwise reorders). */
 function OrderedLegend({ items }: { items: typeof NET_WORTH_LEGEND }) {
   return (
@@ -220,29 +226,32 @@ export function NetWorthChart({
   projection,
   cashAtClosing = 0,
   targetAge,
+  consumer,
 }: {
   projection: ProjectionRow[];
   cashAtClosing?: number;
   targetAge?: number;
+  consumer?: boolean;
 }) {
   const data = toData(projection).map((d) => ({ ...d, cashAtClosing }));
   const m = atAge(data, targetAge);
+  const legend = consumer ? NET_WORTH_LEGEND_CONSUMER : NET_WORTH_LEGEND;
   return (
-    <ChartCard title="Net Worth Over Time">
+    <ChartCard title={consumer ? 'Your net worth over time' : 'Net Worth Over Time'}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
           <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
-          {/* Custom legend so "Available cash at closing" sits next to the
+          {/* Custom legend so "Cash drawn at closing" sits next to the
               net-worth key (recharts' default legend orders by dataKey). */}
-          <Legend content={() => <OrderedLegend items={NET_WORTH_LEGEND} />} />
+          <Legend content={() => <OrderedLegend items={legend} />} />
           {/* Shade only the net-worth area (matching the Equity chart's style);
               the two dashed reference lines stay unfilled to keep it readable. */}
-          <Area type="monotone" dataKey="rmNetWorth" name="Net Worth with HECM (after costs)" stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
-          <Line type="monotone" dataKey="homeValue" name="Home Value (No HECM)" stroke="#1b2a4a" dot={false} strokeWidth={2} strokeDasharray="6 4" />
-          <Line type="monotone" dataKey="cashAtClosing" name="Cash drawn at closing" stroke="#d4854a" dot={false} strokeWidth={2} strokeDasharray="2 4" />
+          <Area type="monotone" dataKey="rmNetWorth" name={legend[0].name} stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
+          <Line type="monotone" dataKey="homeValue" name={legend[2].name} stroke="#1b2a4a" dot={false} strokeWidth={2} strokeDasharray="6 4" />
+          <Line type="monotone" dataKey="cashAtClosing" name={legend[1].name} stroke="#d4854a" dot={false} strokeWidth={2} strokeDasharray="2 4" />
           {m && (
             <>
               {markerLine(m.age)}
@@ -256,7 +265,7 @@ export function NetWorthChart({
   );
 }
 
-export function StandbyChart({ projection, targetAge }: { projection: ProjectionRow[]; targetAge?: number }) {
+export function StandbyChart({ projection, targetAge, consumer }: { projection: ProjectionRow[]; targetAge?: number; consumer?: boolean }) {
   // Pure liquidity story: the two distinct ways the client can reach cash — borrow
   // against the growing line of credit (without selling) or sell for the equity.
   // These are alternatives, not a sum, so they are plotted as separate lines. Net
@@ -268,7 +277,7 @@ export function StandbyChart({ projection, targetAge }: { projection: Projection
   }));
   const m = atAge(data, targetAge);
   return (
-    <ChartCard title="Standby LOC Strategy: Liquidity You Can Tap">
+    <ChartCard title={consumer ? 'Your safety net: money you can reach' : 'Standby LOC Strategy: Liquidity You Can Tap'}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
@@ -291,7 +300,7 @@ export function StandbyChart({ projection, targetAge }: { projection: Projection
   );
 }
 
-export function MortgageComparisonChart({ rows, targetAge }: { rows: ComparisonRow[]; targetAge?: number }) {
+export function MortgageComparisonChart({ rows, targetAge, consumer }: { rows: ComparisonRow[]; targetAge?: number; consumer?: boolean }) {
   const data = rows.map((r) => ({
     age: r.age,
     netWorthHecm: r.netWorthHecm,
@@ -299,7 +308,7 @@ export function MortgageComparisonChart({ rows, targetAge }: { rows: ComparisonR
   }));
   const m = atAge(data, targetAge);
   return (
-    <ChartCard title="Net Worth: HECM (mortgage paid off) vs. Keeping the Mortgage">
+    <ChartCard title={consumer ? 'Net worth: reverse mortgage vs. keeping your mortgage' : 'Net Worth: HECM (mortgage paid off) vs. Keeping the Mortgage'}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
@@ -307,8 +316,8 @@ export function MortgageComparisonChart({ rows, targetAge }: { rows: ComparisonR
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
-          <Line type="monotone" dataKey="netWorthHecm" name="Net worth — HECM (mortgage paid off)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="netWorthNoHecm" name="Net worth — keep the mortgage" stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="netWorthHecm" name={consumer ? 'With the reverse mortgage' : 'Net worth — HECM (mortgage paid off)'} stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="netWorthNoHecm" name={consumer ? 'Keeping your mortgage' : 'Net worth — keep the mortgage'} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
           {m && (
             <>
               {markerLine(m.age)}

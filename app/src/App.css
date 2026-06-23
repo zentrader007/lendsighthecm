@@ -413,39 +413,15 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
 }
 .consumer-callout strong { color: var(--green); font-variant-numeric: tabular-nums; }
 
-.consumer-standby-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin: 6px 0 4px;
+/* Consumer tabbed charts reuse the shared chart components. Strip the inner
+   chart-card chrome so the chart sits flush inside the consumer section. */
+.consumer-seg { flex-wrap: wrap; margin: 4px 0 18px; }
+.consumer-chart-card .chart-card {
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
-.consumer-standby-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px;
-  background: var(--secondary);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-}
-.consumer-standby-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.consumer-standby-value {
-  font-family: var(--font-mono);
-  font-size: clamp(1.3rem, 2.4vw, 1.7rem);
-  font-weight: 700;
-  color: var(--navy);
-  font-variant-numeric: tabular-nums;
-}
-.consumer-standby-note { font-size: 13px; color: var(--muted); line-height: 1.5; }
-@media (max-width: 760px) {
-  .consumer-standby-stats { grid-template-columns: 1fr; }
-}
+.consumer-chart-card .chart-card:hover { box-shadow: none; }
 
 .consumer-explain {
   background: var(--secondary);

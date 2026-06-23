@@ -1,18 +1,23 @@
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts';
+import { useMemo, useState } from 'react';
 import type { SimulationInputs, SimulationResult } from '../engine';
-import { residualMortgage } from '../engine/comparison';
+import { runMortgageComparison } from '../engine/comparison';
+import {
+  LocChart,
+  HomeEquityChart,
+  NetWorthChart,
+  StandbyChart,
+  MortgageComparisonChart,
+} from './Charts';
 import { usd } from '../format';
 
-const fmtK = (n: number) => `$${Math.round(n / 1000)}k`;
-const tip = (value: unknown) => usd(Number(value));
+type ConsumerStage = 'loc' | 'networth' | 'equity' | 'standby';
+
+const CONSUMER_TABS: readonly { key: ConsumerStage; label: string }[] = [
+  { key: 'loc', label: 'Credit line growth' },
+  { key: 'networth', label: 'Net worth' },
+  { key: 'equity', label: 'Equity vs balance' },
+  { key: 'standby', label: 'Standby LOC' },
+];
 
 export function ConsumerView({
   inputs,
@@ -21,22 +26,31 @@ export function ConsumerView({
   inputs: SimulationInputs;
   result: SimulationResult;
 }) {
-  const locData = result.projection
-    .filter((r) => r.age <= 95)
-    .map((r) => ({ age: r.age, loc: r.availableLOC, equity: r.equity }));
+  const [stage, setStage] = useState<ConsumerStage>('loc');
 
-  const startLOC = result.remainingCredit;
-  const locAt85 = result.projection.find((r) => r.age === 85)?.availableLOC;
+  // Every figure below is read from the same runSimulation(inp) result the
+  // advisor view uses, so the two views can never disagree on the numbers.
+  const rowAt = (age: number) =>
+    result.projection.find((r) => r.age >= age) ?? result.projection[result.projection.length - 1];
+  const r85 = rowAt(85);
   // 20-year horizon for the standby safety-net story (or the last row if shorter).
   const r20 = result.projection[Math.min(20, result.projection.length - 1)];
-  // When the HECM paid off a mortgage, the honest no-HECM baseline is home value
-  // net of the still-outstanding mortgage, not gross home value.
+  const startLOC = result.remainingCredit;
+
+  // Lien-aware net-worth comparison (only meaningful when a mortgage is paid off),
+  // identical to the advisor's Net worth tab.
   const hasLien = inputs.existingLiens > 0;
-  const residual20 = hasLien
-    ? residualMortgage(inputs.existingLiens, inputs.existingLienRate, inputs.existingLienTermRemaining, r20.year)
-    : 0;
-  const noHecmBaseline = Math.max(0, r20.homeValue - residual20);
-  const standbyCost = noHecmBaseline - r20.rmNetWorth;
+  const cmp = useMemo(() => runMortgageComparison(inputs), [inputs]);
+  const cmpLast = cmp.rows[cmp.rows.length - 1];
+
+  const insights: Record<ConsumerStage, string> = {
+    loc: `Your starting line of credit of ${usd(startLOC)} could grow to about ${usd(r85.availableLOC)} by age ${r85.age} — even if your home's value never changes.`,
+    networth: hasLien
+      ? `By age ${cmpLast.age}, using the reverse mortgage to pay off your ${usd(inputs.existingLiens)} mortgage leaves a projected net worth of ${usd(cmpLast.netWorthHecm)}, versus ${usd(cmpLast.netWorthNoHecm)} if you keep your current mortgage — because the reverse mortgage removes your monthly payment.`
+      : `With the reverse mortgage, your projected net worth (home equity minus the loan balance and costs) is ${usd(r85.rmNetWorth)} at age ${r85.age}, versus ${usd(r85.homeValue)} in home value if you took no reverse mortgage. The difference is the cost of the borrowing and the loan's growth over time.`,
+    equity: `At age ${r85.age} your home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity for you or your heirs.`,
+    standby: `Left untouched, your line of credit grows to ${usd(r20.availableLOC)} by age ${r20.age} — money you can borrow without selling your home — versus ${usd(r20.equity)} of equity you could reach by selling instead. Drawing on the line adds to the loan balance, and if you sell the home the line is no longer available.`,
+  };
 
   return (
     <div className="consumer">
@@ -75,75 +89,38 @@ export function ConsumerView({
       </div>
 
       <section className="consumer-chart-card">
-        <h2>Your line of credit grows over time</h2>
+        <h2>Explore your estimate</h2>
         <p className="consumer-chart-sub">
-          One of the most powerful features: any money you don't use stays in a line of credit that
-          grows automatically — giving you more access as you age.
+          Use the tabs to see your line of credit growth, net worth, home equity, and standby
+          safety net — all built from the same numbers above.
         </p>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={locData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
-            <defs>
-              <linearGradient id="locGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4a7c9b" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="#4a7c9b" stopOpacity={0.03} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-            <XAxis dataKey="age" tick={{ fontSize: 13, fontFamily: 'DM Mono, monospace' }} label={{ value: 'Your age', position: 'insideBottom', offset: -2, fontSize: 12 }} />
-            <YAxis tickFormatter={fmtK} tick={{ fontSize: 13, fontFamily: 'DM Mono, monospace' }} width={56} />
-            <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
-            <Area type="monotone" dataKey="loc" name="Available line of credit" stroke="#4a7c9b" strokeWidth={2.5} fill="url(#locGrad)" />
-          </AreaChart>
-        </ResponsiveContainer>
-        {locAt85 != null && (
-          <p className="consumer-callout">
-            Your starting line of credit of <strong>{usd(startLOC)}</strong> could grow to about{' '}
-            <strong>{usd(locAt85)}</strong> by age 85 — even if your home value never changes.
-          </p>
-        )}
-      </section>
-
-      <section className="consumer-chart-card">
-        <h2>A safety net that grows — even if you never use it</h2>
-        <p className="consumer-chart-sub">
-          Many homeowners open a reverse mortgage line of credit and simply let it sit as an
-          emergency fund. Here is what that standby safety net looks like for you, twenty years
-          from now.
-        </p>
-        <div className="consumer-standby-stats">
-          <div className="consumer-standby-stat">
-            <span className="consumer-standby-label">
-              Total you could potentially access at age {r20.age}
-            </span>
-            <span className="consumer-standby-value">{usd(r20.accessibleResources)}</span>
-            <span className="consumer-standby-note">
-              {usd(r20.equity)} home equity OR {usd(r20.availableLOC)} credit line — not both; selling
-              the home to access equity ends the credit line.
-            </span>
-          </div>
-          <div className="consumer-standby-stat">
-            <span className="consumer-standby-label">Without a reverse mortgage</span>
-            <span className="consumer-standby-value">{usd(noHecmBaseline)}</span>
-            <span className="consumer-standby-note">
-              {hasLien
-                ? `Your home's value (${usd(r20.homeValue)}) minus the roughly ${usd(residual20)} still owed on your current mortgage`
-                : "Your home's value — accessible only by selling or borrowing against it"}
-            </span>
-          </div>
-          <div className="consumer-standby-stat">
-            <span className="consumer-standby-label">Cost of keeping the safety net</span>
-            <span className="consumer-standby-value">{usd(standbyCost)}</span>
-            <span className="consumer-standby-note">
-              The projected difference in net worth at age {r20.age} under these assumptions
-            </span>
-          </div>
+        <div className="seg consumer-seg">
+          {CONSUMER_TABS.map((t) => (
+            <button
+              key={t.key}
+              className={stage === t.key ? 'active' : ''}
+              onClick={() => setStage(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
-        <p className="consumer-callout">
-          Think of it like insurance: the cost above is the premium for having{' '}
-          <strong>{usd(r20.availableLOC)}</strong> ready at age {r20.age} for health events, home
-          repairs, market downturns, or simply peace of mind — without selling your home or asking
-          a bank for a new loan when you may no longer qualify.
-        </p>
+
+        {stage === 'loc' && <LocChart projection={result.projection} consumer />}
+        {stage === 'networth' &&
+          (hasLien ? (
+            <MortgageComparisonChart rows={cmp.rows} consumer />
+          ) : (
+            <NetWorthChart
+              projection={result.projection}
+              cashAtClosing={inputs.initialCashDraw}
+              consumer
+            />
+          ))}
+        {stage === 'equity' && <HomeEquityChart projection={result.projection} consumer />}
+        {stage === 'standby' && <StandbyChart projection={result.projection} consumer />}
+
+        <p className="consumer-callout">{insights[stage]}</p>
       </section>
 
       <section className="consumer-explain">
