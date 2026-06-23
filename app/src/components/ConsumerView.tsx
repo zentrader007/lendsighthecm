@@ -74,7 +74,7 @@ export function ConsumerView({
         <BigCard
           label="Total funds available"
           value={usd(result.principalLimit)}
-          note="The most you can borrow over the life of the loan"
+          note="Estimated amount you can borrow"
         />
         <BigCard
           label="Monthly income for life"
