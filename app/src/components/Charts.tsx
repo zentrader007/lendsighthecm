@@ -28,7 +28,6 @@ const toData = (projection: ProjectionRow[]) =>
     upb: r.upb,
     equity: r.equity,
     availableLOC: r.availableLOC,
-    totalPL: r.totalPL,
     equityOnly: r.equity,
     investmentPlusEquity: r.investmentPlusEquity,
     rmNetWorth: r.rmNetWorth,
@@ -132,7 +131,6 @@ export function LocChart({ projection, targetAge, consumer }: { projection: Proj
           {/* Equity, styled the same as the Equity vs. Balance tab. */}
           <Area type="monotone" dataKey="equity" name={consumer ? 'Home equity' : 'Equity'} stroke="#5b9f5b" strokeWidth={2.5} fill="rgba(91,159,91,0.1)" />
           <Line type="monotone" dataKey="availableLOC" name={consumer ? 'Available line of credit' : 'Available LOC'} stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="totalPL" name={consumer ? 'Total funds available' : 'Total Principal Limit'} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
           {m && (
             <>
               {markerLine(m.age)}
