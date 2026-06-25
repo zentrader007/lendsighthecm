@@ -399,11 +399,31 @@ export function RedesignAdvisor({
           <ToggleField label="Finance MIP Only?" value={inp.financeMipOnly} onChange={(v) => set('financeMipOnly', v)} disabled={inp.costsInLoan} tip="When on (and 'Finance Costs in Loan?' is off), only the initial MIP is financed into the loan; all other closing costs are paid out of pocket. Ignored while 'Finance Costs in Loan?' is on, since everything is financed then." />
           <NumberField label="Initial MIP" value={result.initialMIP} onChange={(v) => setCost('initialMipOverride', v)} suffix="$" min={0} tip="Up-front FHA Mortgage Insurance Premium. Auto-calculated at 2% of the max claim amount; type an exact figure to override, or set to 0 to recalculate." />
           <NumberField label="Origination Fee" value={result.calculatedOriginationFee} onChange={(v) => setCost('originationOverride', v)} suffix="$" min={-1} tip="Auto-calculated by the HUD tier formula: 2% of the first $200k of the max claim amount + 1% above, floored at $2,500 and capped at $6,000 (so it is not a flat $6,000 on lower-value homes). Type an exact figure to override — including $0 to waive it — or clear the field to recalculate." />
+          <NumberField label="Origination Discount" value={inp.costs.originationDiscount} onChange={(v) => setCost('originationDiscount', v)} suffix="$" min={0} tip="Any lender credit or charge added to the origination fee above." />
           <NumberField label="Counseling (POC)" value={inp.costs.counselingCost} onChange={(v) => setCost('counselingCost', v)} suffix="$" min={0} tip="HUD-required counseling fee, paid out of pocket (POC)." />
           <NumberField label="Appraisal (POC)" value={inp.costs.appraisalPOC} onChange={(v) => setCost('appraisalPOC', v)} suffix="$" min={0} tip="Home appraisal fee, paid out of pocket (POC)." />
-          <NumberField label="Origination Discount" value={inp.costs.originationDiscount} onChange={(v) => setCost('originationDiscount', v)} suffix="$" min={0} tip="Any lender credit or discount applied to the origination fee above." />
-          <NumberField label="Title / Settlement" value={inp.costs.settlementClosing} onChange={(v) => setCost('settlementClosing', v)} suffix="$" min={0} tip="Title and settlement / closing charges." />
-          <NumberField label="Other (in loan)" value={inp.costs.other} onChange={(v) => setCost('other', v)} suffix="$" min={0} tip="Any other closing costs financed into the loan." />
+          <NumberField label="Other (POC)" value={inp.costs.otherPOCCosts} onChange={(v) => setCost('otherPOCCosts', v)} suffix="$" min={0} tip="Any other fees paid out of pocket (POC) — not financed into the loan." />
+        </Section>
+
+        <Section title="Third-Party &amp; Title Fees">
+          <p className="section-note">
+            Itemize a lender quote here. These are financed into the loan when "Finance Costs in
+            Loan?" is on; otherwise they're paid out of pocket. Anything without its own line goes
+            in "Other."
+          </p>
+          <NumberField label="Credit Report" value={inp.costs.creditReport} onChange={(v) => setCost('creditReport', v)} suffix="$" min={0} tip="Credit report fee." />
+          <NumberField label="Flood Certification" value={inp.costs.floodCertification} onChange={(v) => setCost('floodCertification', v)} suffix="$" min={0} tip="Flood-zone certification fee." />
+          <NumberField label="Doc Prep" value={inp.costs.docPrep} onChange={(v) => setCost('docPrep', v)} suffix="$" min={0} tip="Document preparation fee." />
+          <NumberField label="MERS Registration" value={inp.costs.mersRegistration} onChange={(v) => setCost('mersRegistration', v)} suffix="$" min={0} tip="MERS registration fee." />
+          <NumberField label="Tax Cert Fee" value={inp.costs.taxCertFee} onChange={(v) => setCost('taxCertFee', v)} suffix="$" min={0} tip="Tax certification / tax-service fee." />
+          <NumberField label="Trust Review" value={inp.costs.trustReview} onChange={(v) => setCost('trustReview', v)} suffix="$" min={0} tip="Trust or legal-document review fee." />
+          <NumberField label="Settlement / Closing" value={inp.costs.settlementClosing} onChange={(v) => setCost('settlementClosing', v)} suffix="$" min={0} tip="Settlement / closing / escrow charges." />
+          <NumberField label="Owner's Title" value={inp.costs.ownersTitle} onChange={(v) => setCost('ownersTitle', v)} suffix="$" min={0} tip="Owner's title insurance premium." />
+          <NumberField label="Lender's Title" value={inp.costs.lendersTitle} onChange={(v) => setCost('lendersTitle', v)} suffix="$" min={0} tip="Lender's title insurance premium." />
+          <NumberField label="Title Services" value={inp.costs.titleServices} onChange={(v) => setCost('titleServices', v)} suffix="$" min={0} tip="Title search / settlement-services fee." />
+          <NumberField label="Notary" value={inp.costs.notary} onChange={(v) => setCost('notary', v)} suffix="$" min={0} tip="Notary / signing fee." />
+          <NumberField label="Recording" value={inp.costs.recording} onChange={(v) => setCost('recording', v)} suffix="$" min={0} tip="County recording fee." />
+          <NumberField label="Other (in loan)" value={inp.costs.other} onChange={(v) => setCost('other', v)} suffix="$" min={0} tip="Any other closing costs not itemized above." />
         </Section>
 
         <button className="drawer-done" onClick={() => setDrawerOpen(false)}>
