@@ -32,9 +32,10 @@ export function deriveCosts(
   const rawOrig = first200k + over200k;
   const tierOriginationFee = rawOrig < 2500 ? 2500 : rawOrig > 6000 ? 6000 : rawOrig;
   // calculatedOriginationFee is the effective fee: the override if set, else the
-  // tiered figure. The discount still applies on top either way.
+  // tiered figure. A negative override means "auto" so that $0 stays a valid
+  // (waived) fee; the discount still applies on top either way.
   const calculatedOriginationFee =
-    costs.originationOverride > 0 ? costs.originationOverride : tierOriginationFee;
+    costs.originationOverride >= 0 ? costs.originationOverride : tierOriginationFee;
   const origination = calculatedOriginationFee + costs.originationDiscount;
 
   // Initial MIP = 2% of the max claim amount, unless overridden to an exact figure.

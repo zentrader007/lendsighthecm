@@ -5,7 +5,7 @@ export const defaultCosts: CostInputs = {
   appraisalPOC: 750,
   otherPOCCosts: 0,
   initialMipOverride: 0,
-  originationOverride: 0,
+  originationOverride: -1, // -1 = auto-calculate; 0 is a valid (waived) fee
   originationDiscount: 0,
   appraisalInLoan: 0,
   creditReport: 0,
