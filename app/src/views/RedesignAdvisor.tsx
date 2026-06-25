@@ -181,7 +181,7 @@ export function RedesignAdvisor({
     invest: `By age ${r90.age}, investing the proceeds plus remaining equity totals ${usd(r90.investmentPlusEquity)}, vs ${usd(r90.equity)} from keeping equity alone.`,
     standby: standbyInsight,
     seqrisk: seqInsight,
-    table: 'Draw and Payment cells are editable — type a value and the entire projection updates instantly.',
+    table: 'Draw and Payment cells are editable — type a value and the projection updates instantly. The Investment column compounds the invested proceeds; any closing costs paid out of pocket (rather than financed) are subtracted from its starting balance.',
   };
 
   return (
