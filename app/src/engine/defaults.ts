@@ -4,6 +4,8 @@ export const defaultCosts: CostInputs = {
   counselingCost: 199,
   appraisalPOC: 750,
   otherPOCCosts: 0,
+  initialMipOverride: 0,
+  originationOverride: 0,
   originationDiscount: 0,
   appraisalInLoan: 0,
   creditReport: 0,

@@ -14,6 +14,10 @@ export interface CostInputs {
   counselingCost: number; // POC
   appraisalPOC: number; // POC
   otherPOCCosts: number; // POC
+  // Overrides: 0 = use the auto-calculated value (2% MCA for MIP; the tiered
+  // origination formula). > 0 replaces the calculated figure to the dollar.
+  initialMipOverride: number;
+  originationOverride: number;
   originationDiscount: number;
   appraisalInLoan: number;
   creditReport: number;

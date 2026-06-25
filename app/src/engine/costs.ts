@@ -25,13 +25,21 @@ export function deriveCosts(
 ): DerivedCosts {
   const effectiveHomeValue = Math.min(homeValue, hecmLimit);
 
+  // Tiered origination: first $200k of MCA @ 2%, excess @ 1%, floored at $2,500
+  // and capped at $6,000 — so it is NOT a flat $6,000 on lower-value homes.
   const first200k = effectiveHomeValue < 200000 ? 0.02 * effectiveHomeValue : 4000;
   const over200k = effectiveHomeValue > 200000 ? 0.01 * (effectiveHomeValue - 200000) : 0;
   const rawOrig = first200k + over200k;
-  const calculatedOriginationFee = rawOrig < 2500 ? 2500 : rawOrig > 6000 ? 6000 : rawOrig;
+  const tierOriginationFee = rawOrig < 2500 ? 2500 : rawOrig > 6000 ? 6000 : rawOrig;
+  // calculatedOriginationFee is the effective fee: the override if set, else the
+  // tiered figure. The discount still applies on top either way.
+  const calculatedOriginationFee =
+    costs.originationOverride > 0 ? costs.originationOverride : tierOriginationFee;
   const origination = calculatedOriginationFee + costs.originationDiscount;
 
-  const initialMIP = 0.02 * effectiveHomeValue;
+  // Initial MIP = 2% of the max claim amount, unless overridden to an exact figure.
+  const initialMIP =
+    costs.initialMipOverride > 0 ? costs.initialMipOverride : 0.02 * effectiveHomeValue;
 
   // Total Loan Costs = SUM(Advanced!C18:C33): origination + listed line items + initial MIP.
   const nonMIP =
