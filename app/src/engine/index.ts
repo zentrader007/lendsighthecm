@@ -44,22 +44,20 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   const plf = lookupPLF(age, inp.cmt10yr, margin);
 
   // --- Costs ---
-  const c = deriveCosts(homeValue, hecmLimit, inp.costs, costsInLoan);
-  const { effectiveHomeValue, initialMIP, totalLoanCost, totalCostAllIn, calculatedOriginationFee, pocCosts } = c;
+  const c = deriveCosts(homeValue, hecmLimit, inp.costs, costsInLoan, inp.financeMipOnly);
+  const { effectiveHomeValue, initialMIP, totalLoanCost, totalCostAllIn, calculatedOriginationFee, financedCosts, pocCosts } = c;
 
   // --- Principal limit & draws ---
   // A lender quote can override the table-derived limit so every downstream
   // figure (LOC, draws, tenure) matches the quote to the dollar.
   const principalLimit =
     inp.principalLimitOverride > 0 ? inp.principalLimitOverride : effectiveHomeValue * plf;
-  const feesInLoan = costsInLoan ? totalLoanCost : 0;
+  const feesInLoan = financedCosts;
   const sixtyPctPL = 0.6 * principalLimit - feesInLoan;
   const tenPctPL = 0.1 * principalLimit;
   const plMinusMOMinusFees = principalLimit - mandatoryObligations - feesInLoan;
 
-  const baseUPB = costsInLoan
-    ? totalLoanCost + mandatoryObligations + initialCashDraw
-    : mandatoryObligations + initialCashDraw;
+  const baseUPB = financedCosts + mandatoryObligations + initialCashDraw;
   const initialUPB = Math.min(baseUPB, principalLimit);
   // availableFunds keeps the raw (possibly negative) figure so the draw/tenure
   // guards below behave exactly as the workbook does. remainingCredit is floored
@@ -80,9 +78,7 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
       ? -PMT(loanProjectedRate / 12, 1200 - age * 12, availableFunds, 0, 1)
       : null;
 
-  const h4pDownPaymentMin = costsInLoan
-    ? homeValue - principalLimit + totalLoanCost
-    : homeValue - principalLimit;
+  const h4pDownPaymentMin = homeValue - principalLimit + financedCosts;
 
   // --- Projection ---
   const projection: ProjectionRow[] = [];

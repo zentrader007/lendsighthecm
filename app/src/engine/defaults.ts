@@ -29,6 +29,7 @@ export const defaultInputs: SimulationInputs = {
   existingLiens: 0,
   initialCashDraw: 50000,
   costsInLoan: true,
+  financeMipOnly: false,
   cmt10yr: 0.0438,
   cmt1yr: 0.0375,
   margin: 0.02375,

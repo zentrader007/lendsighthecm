@@ -116,16 +116,23 @@ export function ToggleField({
   value,
   onChange,
   tip,
+  disabled,
 }: {
   label: string;
   value: boolean;
   onChange: (v: boolean) => void;
   tip?: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="field field-toggle">
+    <label className={`field field-toggle${disabled ? ' field-disabled' : ''}`}>
       <span>{label}{tip && <InfoTip text={tip} />}</span>
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
+      <input
+        type="checkbox"
+        checked={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
     </label>
   );
 }

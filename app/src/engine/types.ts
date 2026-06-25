@@ -41,6 +41,12 @@ export interface SimulationInputs {
   existingLiens: number; // mandatory obligations
   initialCashDraw: number;
   costsInLoan: boolean;
+  /**
+   * Finance only the initial MIP into the loan and pay all other closing costs
+   * out of pocket. Only takes effect when costsInLoan is false (when costsInLoan
+   * is true, every cost is financed anyway).
+   */
+  financeMipOnly: boolean;
 
   // Rates (Dashboard)
   cmt10yr: number; // 10yr CMT index / expected-rate index

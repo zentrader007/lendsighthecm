@@ -77,6 +77,7 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
     beginningYear: numOr(inp.beginningYear, defaultInputs.beginningYear),
     projectionYears: numOr(inp.projectionYears, defaultInputs.projectionYears),
     costsInLoan: Boolean(inp.costsInLoan),
+    financeMipOnly: Boolean(inp.financeMipOnly),
     draws: arr38(inp.draws, defaultInputs.draws),
     payments: arr38(inp.payments, defaultInputs.payments),
     costs,

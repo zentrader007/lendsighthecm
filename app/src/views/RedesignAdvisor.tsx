@@ -395,7 +395,8 @@ export function RedesignAdvisor({
         </Section>
 
         <Section title="Closing Costs">
-          <ToggleField label="Finance Costs in Loan?" value={inp.costsInLoan} onChange={(v) => set('costsInLoan', v)} tip="When on, closing costs and the initial MIP are added to the loan balance instead of paid out of pocket." />
+          <ToggleField label="Finance Costs in Loan?" value={inp.costsInLoan} onChange={(v) => set('costsInLoan', v)} tip="When on, all closing costs and the initial MIP are added to the loan balance instead of paid out of pocket." />
+          <ToggleField label="Finance MIP Only?" value={inp.financeMipOnly} onChange={(v) => set('financeMipOnly', v)} disabled={inp.costsInLoan} tip="When on (and 'Finance Costs in Loan?' is off), only the initial MIP is financed into the loan; all other closing costs are paid out of pocket. Ignored while 'Finance Costs in Loan?' is on, since everything is financed then." />
           <NumberField label="Counseling (POC)" value={inp.costs.counselingCost} onChange={(v) => setCost('counselingCost', v)} suffix="$" min={0} tip="HUD-required counseling fee, paid out of pocket (POC)." />
           <NumberField label="Appraisal (POC)" value={inp.costs.appraisalPOC} onChange={(v) => setCost('appraisalPOC', v)} suffix="$" min={0} tip="Home appraisal fee, paid out of pocket (POC)." />
           <NumberField label="Origination Discount" value={inp.costs.originationDiscount} onChange={(v) => setCost('originationDiscount', v)} suffix="$" min={0} tip="Any lender credit or discount applied to the calculated origination fee." />
