@@ -405,7 +405,7 @@ export function RedesignAdvisor({
           <NumberField label="Other (POC)" value={inp.costs.otherPOCCosts} onChange={(v) => setCost('otherPOCCosts', v)} suffix="$" min={0} tip="Any other fees paid out of pocket (POC) — not financed into the loan." />
         </Section>
 
-        <Section title="Third-Party &amp; Title Fees">
+        <Section title="Third-Party &amp; Title Fees" collapsible defaultOpen={false}>
           <p className="section-note">
             Itemize a lender quote here. These are financed into the loan when "Finance Costs in
             Loan?" is on; otherwise they're paid out of pocket. Anything without its own line goes
@@ -436,11 +436,40 @@ export function RedesignAdvisor({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  collapsible,
+  defaultOpen = true,
+}: {
+  title: string;
+  children: React.ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  if (!collapsible) {
+    return (
+      <div className="section">
+        <h2>{title}</h2>
+        {children}
+      </div>
+    );
+  }
   return (
     <div className="section">
-      <h2>{title}</h2>
-      {children}
+      <button
+        type="button"
+        className="section-head"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        {title}
+        <span className="section-chevron" aria-hidden>
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      {open && children}
     </div>
   );
 }
