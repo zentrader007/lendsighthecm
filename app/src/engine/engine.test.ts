@@ -5,9 +5,14 @@ import { FV, PMT, MROUND } from './finance';
 
 // Golden-master values captured directly from the V8.5.1 workbook's computed cells
 // for the shipped "Jim Smith" scenario. The engine must reproduce these exactly.
-// The workbook scenario used 4% appreciation; the app's shipped default is now 3%,
-// so the golden master pins the original value explicitly.
-const goldenInputs = { ...defaultInputs, appreciation: 0.04 };
+// The workbook scenario used 4% appreciation and a $2,750 "Other" closing cost; the
+// app's shipped defaults are now 3% and $0 (fees are itemized instead), so the
+// golden master pins the original workbook values explicitly.
+const goldenInputs = {
+  ...defaultInputs,
+  appreciation: 0.04,
+  costs: { ...defaultCosts, other: 2750 },
+};
 const r = runSimulation(goldenInputs);
 
 const near = (a: number, b: number, tol = 0.5) =>

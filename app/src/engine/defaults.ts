@@ -20,7 +20,8 @@ export const defaultCosts: CostInputs = {
   titleServices: 0,
   notary: 0,
   recording: 0,
-  other: 2750,
+  // No hidden lump: third-party fees are itemized above, so "Other" starts at 0.
+  other: 0,
 };
 
 /** The workbook's shipped "Jim Smith" scenario — used as the golden-master baseline. */
