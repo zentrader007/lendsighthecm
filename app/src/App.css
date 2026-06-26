@@ -163,13 +163,23 @@ header h1 { font-size: 30px; margin: 0; color: var(--navy); letter-spacing: -0.0
 .section-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   width: 100%;
   margin: 0 0 12px;
-  padding: 10px 14px;
+  padding: 7px 12px;
   background: rgba(74, 124, 155, 0.1);
   border: 1px solid var(--primary);
   border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+.section-head:hover { background: rgba(74, 124, 155, 0.16); }
+.section-head-toggle {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 5px 0;
+  background: none;
+  border: none;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -177,9 +187,14 @@ header h1 { font-size: 30px; margin: 0; color: var(--navy); letter-spacing: -0.0
   letter-spacing: 0.18em;
   color: var(--primary);
   cursor: pointer;
-  transition: background 0.15s ease;
 }
-.section-head:hover { background: rgba(74, 124, 155, 0.2); }
+.section-chevron-btn {
+  display: inline-flex;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
 .section-chevron {
   display: inline-flex;
   align-items: center;
@@ -193,6 +208,27 @@ header h1 { font-size: 30px; margin: 0; color: var(--navy); letter-spacing: -0.0
   line-height: 1;
   letter-spacing: 0;
 }
+.section-head-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.section-head-field .prefix { color: var(--muted); font-size: 12px; }
+.section-head-field input {
+  width: 66px;
+  border: none;
+  background: none;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.section-head-field input:focus { outline: none; }
 
 .field {
   display: flex;

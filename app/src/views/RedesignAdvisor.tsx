@@ -208,6 +208,13 @@ export function RedesignAdvisor({
     inp.costs.notary +
     inp.costs.recording +
     inp.costs.other;
+  // Editing the collapsed-header total writes the difference into the generic
+  // "Other" bucket, so the section total matches what was typed (the itemized
+  // lines stay put and can be broken out later).
+  const setThirdPartyTotal = (newTotal: number) => {
+    const itemizedExceptOther = thirdPartyTotal - inp.costs.other;
+    setCost('other', Math.max(0, newTotal - itemizedExceptOther));
+  };
 
   return (
     <div className="app v2">
@@ -430,7 +437,12 @@ export function RedesignAdvisor({
           <NumberField label="Other (POC)" value={inp.costs.otherPOCCosts} onChange={(v) => setCost('otherPOCCosts', v)} suffix="$" min={0} tip="Any other fees paid out of pocket (POC) — not financed into the loan." />
         </Section>
 
-        <Section title="Third-Party &amp; Title Fees" collapsible defaultOpen={false}>
+        <Section
+          title="Third-Party &amp; Title Fees"
+          collapsible
+          defaultOpen={false}
+          headerField={<HeaderAmount value={thirdPartyTotal} onChange={setThirdPartyTotal} />}
+        >
           <p className="section-note">
             Itemize a lender quote here. These are financed into the loan when "Finance Costs in
             Loan?" is on; otherwise they're paid out of pocket. Anything without its own line goes
@@ -470,11 +482,14 @@ function Section({
   children,
   collapsible,
   defaultOpen = true,
+  headerField,
 }: {
   title: string;
   children: React.ReactNode;
   collapsible?: boolean;
   defaultOpen?: boolean;
+  /** Optional control shown in the header when the section is collapsed. */
+  headerField?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   if (!collapsible) {
@@ -485,21 +500,68 @@ function Section({
       </div>
     );
   }
+  const toggle = () => setOpen((o) => !o);
   return (
     <div className="section">
-      <button
-        type="button"
-        className="section-head"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
-        {title}
-        <span className="section-chevron" aria-hidden>
-          {open ? '−' : '+'}
-        </span>
-      </button>
+      <div className="section-head">
+        <button
+          type="button"
+          className="section-head-toggle"
+          onClick={toggle}
+          aria-expanded={open}
+        >
+          {title}
+        </button>
+        {!open && headerField}
+        <button
+          type="button"
+          className="section-chevron-btn"
+          onClick={toggle}
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
+          tabIndex={-1}
+        >
+          <span className="section-chevron" aria-hidden>
+            {open ? '−' : '+'}
+          </span>
+        </button>
+      </div>
       {open && children}
     </div>
+  );
+}
+
+/** Compact amount input shown in a collapsed section header (e.g. a quick total). */
+function HeaderAmount({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const formatted = value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return (
+    <span className="section-head-field">
+      <span className="prefix">$</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        aria-label="Third-party & title fees total"
+        value={editing ? draft : formatted}
+        onFocus={(e) => {
+          setDraft(value ? String(value) : '');
+          setEditing(true);
+          const el = e.target;
+          requestAnimationFrame(() => el.select());
+        }}
+        onBlur={() => {
+          const raw = parseFloat(draft);
+          onChange(Number.isNaN(raw) ? 0 : Math.max(0, raw));
+          setEditing(false);
+        }}
+        onChange={(e) => {
+          const cleaned = e.target.value.replace(/[^0-9.]/g, '');
+          setDraft(cleaned);
+          const raw = parseFloat(cleaned);
+          onChange(Number.isNaN(raw) ? 0 : Math.max(0, raw));
+        }}
+      />
+    </span>
   );
 }
 
