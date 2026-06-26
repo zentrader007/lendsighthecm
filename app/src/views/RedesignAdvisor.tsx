@@ -129,6 +129,14 @@ export function RedesignAdvisor({
   // Values at the marked age for the active chart, echoed beside the input.
   const tSeq = atTarget(seq.rows);
   const tCmp = atTarget(cmp.rows);
+
+  // The per-tab footer insights anchor to the marked age when a target is set;
+  // otherwise they keep their default horizons (age 85, age 90, the 20-year mark,
+  // or the last comparison row).
+  const locEqRow = tRow ?? r85;
+  const investRow = tRow ?? r90;
+  const standbyRow = tRow ?? r20;
+  const cmpRow = tCmp ?? cmpLast;
   const targetReadoutFor = (s: StageView) => {
     if (!tRow) return null;
     switch (s) {
@@ -168,17 +176,17 @@ export function RedesignAdvisor({
   // growing line of credit (without selling) or by selling for the equity. These
   // are alternatives, not a sum. Net-worth questions — including any mortgage the
   // HECM paid off — belong on the Net worth tab.
-  const standbyInsight = `Left untouched, the standby line of credit grows to ${usd(r20.availableLOC)} by age ${r20.age} — money the client can borrow without selling the home — versus ${usd(r20.equity)} of equity they'd reach by selling instead. The credit line grows on its own schedule regardless of the home's value, so in a flat market it can outgrow equity. This is standby liquidity, not extra net worth: drawing on the line adds to the loan balance, and if the home is sold the line is no longer available.${inp.existingLiens > 0 ? ' For a like-for-like net-worth comparison that nets out the mortgage the HECM paid off, see the Net worth tab.' : ''}`;
+  const standbyInsight = `Left untouched, the standby line of credit grows to ${usd(standbyRow.availableLOC)} by age ${standbyRow.age} — money the client can borrow without selling the home — versus ${usd(standbyRow.equity)} of equity they'd reach by selling instead. The credit line grows on its own schedule regardless of the home's value, so in a flat market it can outgrow equity. This is standby liquidity, not extra net worth: drawing on the line adds to the loan balance, and if the home is sold the line is no longer available.${inp.existingLiens > 0 ? ' For a like-for-like net-worth comparison that nets out the mortgage the HECM paid off, see the Net worth tab.' : ''}`;
 
   const networthInsight = hasLien
-    ? `Like-for-like at age ${cmpLast.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpLast.netWorthNoHecm)} (${usd(cmpLast.homeEquityNoHecm)} home equity + ${usd(cmpLast.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpLast.netWorthHecm)} (${usd(cmpLast.homeEquityHecm)} home equity + ${usd(cmpLast.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? 'spent on lifestyle here, so the gain shows as cash flow, not wealth' : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
-    : `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(r85.rmNetWorth)} at age ${r85.age}, vs ${usd(r85.homeValue)} if no reverse mortgage were taken — a ${usd(r85.homeValue - r85.rmNetWorth)} difference from accrued borrowing and costs.`;
+    ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? 'spent on lifestyle here, so the gain shows as cash flow, not wealth' : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
+    : `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(locEqRow.rmNetWorth)} at age ${locEqRow.age}, vs ${usd(locEqRow.homeValue)} if no reverse mortgage were taken — a ${usd(locEqRow.homeValue - locEqRow.rmNetWorth)} difference from accrued borrowing and costs.`;
 
   const insights: Record<StageView, string> = {
-    loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(r85.availableLOC)} by age ${r85.age} — even if the home's value never changes.`,
+    loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
     networth: networthInsight,
-    equity: `At age ${r85.age} the home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity.`,
-    invest: `By age ${r90.age}, investing the proceeds plus remaining equity totals ${usd(r90.investmentPlusEquity)}, vs ${usd(r90.equity)} from keeping equity alone.`,
+    equity: `At age ${locEqRow.age} the home is projected at ${usd(locEqRow.homeValue)} with a ${usd(locEqRow.upb)} loan balance — leaving ${usd(locEqRow.equity)} in equity.`,
+    invest: `By age ${investRow.age}, investing the proceeds plus remaining equity totals ${usd(investRow.investmentPlusEquity)}, vs ${usd(investRow.equity)} from keeping equity alone.`,
     standby: standbyInsight,
     seqrisk: seqInsight,
     table: 'Draw and Payment cells are editable — type a value and the projection updates instantly. The Investment column compounds the invested proceeds; any closing costs paid out of pocket (rather than financed) are subtracted from its starting balance.',
