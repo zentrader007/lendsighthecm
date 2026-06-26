@@ -144,6 +144,22 @@ header h1 { font-size: 30px; margin: 0; color: var(--navy); letter-spacing: -0.0
   line-height: 1.5;
   color: var(--muted);
 }
+.section-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.section-total .total-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
 .section-head {
   display: flex;
   align-items: center;

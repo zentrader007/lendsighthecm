@@ -192,6 +192,23 @@ export function RedesignAdvisor({
     table: 'Draw and Payment cells are editable — type a value and the projection updates instantly. The Investment column compounds the invested proceeds; any closing costs paid out of pocket (rather than financed) are subtracted from its starting balance.',
   };
 
+  // Running total of the itemized third-party / title fees, shown at the foot of
+  // that collapsible section.
+  const thirdPartyTotal =
+    inp.costs.creditReport +
+    inp.costs.floodCertification +
+    inp.costs.docPrep +
+    inp.costs.mersRegistration +
+    inp.costs.taxCertFee +
+    inp.costs.trustReview +
+    inp.costs.settlementClosing +
+    inp.costs.ownersTitle +
+    inp.costs.lendersTitle +
+    inp.costs.titleServices +
+    inp.costs.notary +
+    inp.costs.recording +
+    inp.costs.other;
+
   return (
     <div className="app v2">
       <header>
@@ -432,6 +449,10 @@ export function RedesignAdvisor({
           <NumberField label="Notary" value={inp.costs.notary} onChange={(v) => setCost('notary', v)} suffix="$" min={0} tip="Notary / signing fee." />
           <NumberField label="Recording" value={inp.costs.recording} onChange={(v) => setCost('recording', v)} suffix="$" min={0} tip="County recording fee." />
           <NumberField label="Other (in loan)" value={inp.costs.other} onChange={(v) => setCost('other', v)} suffix="$" min={0} tip="Any other closing costs not itemized above." />
+          <div className="section-total">
+            <span>Total: Third-Party &amp; Title Fees</span>
+            <span className="total-value">{usd(thirdPartyTotal)}</span>
+          </div>
         </Section>
 
         <button className="drawer-done" onClick={() => setDrawerOpen(false)}>
