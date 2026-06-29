@@ -263,41 +263,6 @@ export function NetWorthChart({
   );
 }
 
-export function StandbyChart({ projection, targetAge, consumer }: { projection: ProjectionRow[]; targetAge?: number; consumer?: boolean }) {
-  // Pure liquidity story: the two distinct ways the client can reach cash — borrow
-  // against the growing line of credit (without selling) or sell for the equity.
-  // These are alternatives, not a sum, so they are plotted as separate lines. Net
-  // worth (and any lien the HECM paid off) lives on the Net worth tab.
-  const data = projection.map((r) => ({
-    age: r.age,
-    availableLOC: r.availableLOC,
-    equity: r.equity,
-  }));
-  const m = atAge(data, targetAge);
-  return (
-    <ChartCard title={consumer ? 'Your safety net: money you can reach' : 'Standby LOC Strategy: Liquidity You Can Tap'}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
-          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
-          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
-          <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
-          <Legend />
-          <Line type="monotone" dataKey="availableLOC" name="Available credit line (borrow, don't sell)" stroke="#4a7c9b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="equity" name="Home equity (access by selling)" stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
-          {m && (
-            <>
-              {markerLine(m.age)}
-              {markerDot(m.age, m.availableLOC, '#4a7c9b')}
-              {markerDot(m.age, m.equity, '#5b9f5b')}
-            </>
-          )}
-        </LineChart>
-      </ResponsiveContainer>
-    </ChartCard>
-  );
-}
-
 export function MortgageComparisonChart({ rows, targetAge, consumer }: { rows: ComparisonRow[]; targetAge?: number; consumer?: boolean }) {
   const data = rows.map((r) => ({
     age: r.age,

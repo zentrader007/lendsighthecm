@@ -5,18 +5,16 @@ import {
   LocChart,
   HomeEquityChart,
   NetWorthChart,
-  StandbyChart,
   MortgageComparisonChart,
 } from './Charts';
 import { usd } from '../format';
 
-type ConsumerStage = 'loc' | 'networth' | 'equity' | 'standby';
+type ConsumerStage = 'loc' | 'networth' | 'equity';
 
 const CONSUMER_TABS: readonly { key: ConsumerStage; label: string }[] = [
   { key: 'loc', label: 'Credit line growth' },
   { key: 'networth', label: 'Net worth' },
   { key: 'equity', label: 'Equity vs balance' },
-  { key: 'standby', label: 'Standby LOC' },
 ];
 
 export function ConsumerView({
@@ -33,8 +31,6 @@ export function ConsumerView({
   const rowAt = (age: number) =>
     result.projection.find((r) => r.age >= age) ?? result.projection[result.projection.length - 1];
   const r85 = rowAt(85);
-  // 20-year horizon for the standby safety-net story (or the last row if shorter).
-  const r20 = result.projection[Math.min(20, result.projection.length - 1)];
   const startLOC = result.remainingCredit;
 
   // Lien-aware net-worth comparison (only meaningful when a mortgage is paid off),
@@ -49,7 +45,6 @@ export function ConsumerView({
       ? `By age ${cmpLast.age}, using the reverse mortgage to pay off your ${usd(inputs.existingLiens)} mortgage leaves a projected net worth of ${usd(cmpLast.netWorthHecm)}, versus ${usd(cmpLast.netWorthNoHecm)} if you keep your current mortgage — because the reverse mortgage removes your monthly payment.`
       : `With the reverse mortgage, your projected net worth (home equity minus the loan balance and costs) is ${usd(r85.rmNetWorth)} at age ${r85.age}, versus ${usd(r85.homeValue)} in home value if you took no reverse mortgage. The difference is the cost of the borrowing and the loan's growth over time.`,
     equity: `At age ${r85.age} your home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity for you or your heirs.`,
-    standby: `Left untouched, your line of credit grows to ${usd(r20.availableLOC)} by age ${r20.age} — money you can borrow without selling your home — versus ${usd(r20.equity)} of equity you could reach by selling instead. Drawing on the line adds to the loan balance, and if you sell the home the line is no longer available.`,
   };
 
   return (
@@ -91,8 +86,8 @@ export function ConsumerView({
       <section className="consumer-chart-card">
         <h2>Explore your estimate</h2>
         <p className="consumer-chart-sub">
-          Use the tabs to see your line of credit growth, net worth, home equity, and standby
-          safety net — all built from the same numbers above.
+          Use the tabs to see your line of credit growth, net worth, and home equity — all built
+          from the same numbers above.
         </p>
         <div className="seg consumer-seg">
           {CONSUMER_TABS.map((t) => (
@@ -118,7 +113,6 @@ export function ConsumerView({
             />
           ))}
         {stage === 'equity' && <HomeEquityChart projection={result.projection} consumer />}
-        {stage === 'standby' && <StandbyChart projection={result.projection} consumer />}
 
         <p className="consumer-callout">{insights[stage]}</p>
       </section>

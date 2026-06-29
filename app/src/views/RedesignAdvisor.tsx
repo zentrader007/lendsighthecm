@@ -21,9 +21,6 @@ const HomeEquityChart = lazy(() =>
 const InvestChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.InvestChart })),
 );
-const StandbyChart = lazy(() =>
-  import('../components/Charts').then((m) => ({ default: m.StandbyChart })),
-);
 const NetWorthChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.NetWorthChart })),
 );
@@ -34,14 +31,13 @@ const MortgageComparisonChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.MortgageComparisonChart })),
 );
 
-type StageView = 'loc' | 'networth' | 'equity' | 'invest' | 'standby' | 'seqrisk' | 'table';
+type StageView = 'loc' | 'networth' | 'equity' | 'invest' | 'seqrisk' | 'table';
 
 const STAGE_TABS: readonly { key: StageView; label: string }[] = [
   { key: 'loc', label: 'Credit line growth' },
   { key: 'networth', label: 'Net worth' },
   { key: 'equity', label: 'Equity vs balance' },
   { key: 'invest', label: 'Invest comparison' },
-  { key: 'standby', label: 'Standby LOC' },
   { key: 'seqrisk', label: 'Sequence risk' },
   { key: 'table', label: 'Year table' },
 ];
@@ -102,8 +98,6 @@ export function RedesignAdvisor({
   };
   const r85 = rowAt(85);
   const r90 = rowAt(90);
-  // 20-year horizon for the standby-LOC story (or the last row if shorter).
-  const r20 = result.projection[Math.min(20, result.projection.length - 1)];
 
   // Target-age marker shared by every chart and the Year table. An empty input or
   // an age outside the projection range plots/highlights nothing.
@@ -135,7 +129,6 @@ export function RedesignAdvisor({
   // or the last comparison row).
   const locEqRow = tRow ?? r85;
   const investRow = tRow ?? r90;
-  const standbyRow = tRow ?? r20;
   const cmpRow = tCmp ?? cmpLast;
   const targetReadoutFor = (s: StageView) => {
     if (!tRow) return null;
@@ -152,8 +145,6 @@ export function RedesignAdvisor({
         return <>{usd(tRow.homeValue)} home value · {usd(tRow.upb)} loan balance · {usd(tRow.equity)} equity</>;
       case 'invest':
         return <>{usd(tRow.investmentPlusEquity)} invest + equity · {usd(tRow.equity)} equity only</>;
-      case 'standby':
-        return <>{usd(tRow.availableLOC)} credit line · {usd(tRow.equity)} home equity</>;
       case 'seqrisk':
         return tSeq ? <>{usd(tSeq.portfolioBridge)} bridge from LOC · {usd(tSeq.portfolioSell)} sell assets</> : null;
       case 'table':
@@ -172,12 +163,6 @@ export function RedesignAdvisor({
           ? `At this spending level the bridge does not help: even drawing from the credit line, the portfolio runs dry at age ${seq.bridgeDepletionAge}, while selling assets alone funds spending through age ${seqLast.age}. The standby line's capacity is finite — lower the spending or shorten the bridge.`
           : `Spending outruns both strategies: the portfolio depletes at age ${seq.sellDepletionAge} without the HECM and age ${seq.bridgeDepletionAge} with the bridge. Consider lower annual spending, or test a smaller market drop.`;
 
-  // Standby tab is a pure liquidity story: how much the client can tap via the
-  // growing line of credit (without selling) or by selling for the equity. These
-  // are alternatives, not a sum. Net-worth questions — including any mortgage the
-  // HECM paid off — belong on the Net worth tab.
-  const standbyInsight = `Left untouched, the standby line of credit grows to ${usd(standbyRow.availableLOC)} by age ${standbyRow.age} — money the client can borrow without selling the home — versus ${usd(standbyRow.equity)} of equity they'd reach by selling instead. The credit line grows on its own schedule regardless of the home's value, so in a flat market it can outgrow equity. This is standby liquidity, not extra net worth: drawing on the line adds to the loan balance, and if the home is sold the line is no longer available.${inp.existingLiens > 0 ? ' For a like-for-like net-worth comparison that nets out the mortgage the HECM paid off, see the Net worth tab.' : ''}`;
-
   const networthInsight = hasLien
     ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? 'spent on lifestyle here, so the gain shows as cash flow, not wealth' : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
     : `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(locEqRow.rmNetWorth)} at age ${locEqRow.age}, vs ${usd(locEqRow.homeValue)} if no reverse mortgage were taken — a ${usd(locEqRow.homeValue - locEqRow.rmNetWorth)} difference from accrued borrowing and costs.`;
@@ -187,7 +172,6 @@ export function RedesignAdvisor({
     networth: networthInsight,
     equity: `At age ${locEqRow.age} the home is projected at ${usd(locEqRow.homeValue)} with a ${usd(locEqRow.upb)} loan balance — leaving ${usd(locEqRow.equity)} in equity.`,
     invest: `By age ${investRow.age}, investing the proceeds plus remaining equity totals ${usd(investRow.investmentPlusEquity)}, vs ${usd(investRow.equity)} from keeping equity alone.`,
-    standby: standbyInsight,
     seqrisk: seqInsight,
     table: 'Draw and Payment cells are editable — type a value and the projection updates instantly. The Investment column compounds the invested proceeds; any closing costs paid out of pocket (rather than financed) are subtracted from its starting balance.',
   };
@@ -348,7 +332,6 @@ export function RedesignAdvisor({
               ))}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} targetAge={markerAge} />}
             {stage === 'invest' && <InvestChart projection={result.projection} targetAge={markerAge} />}
-            {stage === 'standby' && <StandbyChart projection={result.projection} targetAge={markerAge} />}
             {stage === 'seqrisk' && (
               <>
                 <div className="scenario-bar seq-controls">
