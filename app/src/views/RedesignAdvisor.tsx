@@ -75,6 +75,7 @@ export function RedesignAdvisor({
         ...p,
         cmt10yr: data.cmt10yr,
         cmt1yr: data.cmt1yr,
+        futureCMT10yr: data.cmt10yr,
         ...(data.mortgage30 ? { existingLienRate: data.mortgage30 } : {}),
       }));
       setLive({ status: 'ok', asOf: data.asOf });

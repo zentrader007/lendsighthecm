@@ -40,7 +40,7 @@ export const defaultInputs: SimulationInputs = {
   hecmLimit: 1249125,
   annualMIP: 0.005,
   principalLimitOverride: 0,
-  futureCMT10yr: 0.025,
+  futureCMT10yr: 0.0438, // defaults to the current 10yr CMT (cmt10yr); tracks it on live refresh
   futureCMTMode: 'Assumed',
   investmentReturn: 0.06,
   taxRateOnSoldAssets: 0, // default 0%; advisor can set the client's rate
