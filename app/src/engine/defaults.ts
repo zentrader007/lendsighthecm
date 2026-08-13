@@ -51,6 +51,7 @@ export const defaultInputs: SimulationInputs = {
   recoveryYears: 10,
   existingLienRate: 0.065, // editable; auto-filled from the live 30yr mortgage rate
   existingLienTermRemaining: 25,
+  existingLienPayment: 0, // 0 = auto-amortize from rate/term; > 0 overrides
   freedCashConsumed: false,
   draws: Array(38).fill(0),
   payments: Array(38).fill(0),

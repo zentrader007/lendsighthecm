@@ -13,6 +13,7 @@ interface NumberFieldProps {
   disabled?: boolean;
   tip?: string;
   plain?: boolean; // no thousands grouping (e.g. calendar years)
+  emptyValue?: number; // value committed when the field is cleared (default 0)
 }
 
 export function NumberField({
@@ -26,6 +27,7 @@ export function NumberField({
   disabled,
   tip,
   plain,
+  emptyValue,
 }: NumberFieldProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -35,10 +37,12 @@ export function NumberField({
     ? ''
     : numeric.toLocaleString('en-US', { maximumFractionDigits: 4, useGrouping: !plain });
 
-  // Commit a clamped value (min/max are in display units). Empty stays at min ?? 0.
+  // Commit a clamped value (min/max are in display units). A cleared field commits
+  // to emptyValue (default 0) — clamped into range — so a negative min (e.g. −20%
+  // appreciation) doesn't snap a blank entry to the floor.
   const commit = () => {
     const raw = parseFloat(draft);
-    let display = Number.isNaN(raw) ? (min ?? 0) : raw;
+    let display = Number.isNaN(raw) ? (emptyValue ?? 0) : raw;
     if (min != null) display = Math.max(min, display);
     if (max != null) display = Math.min(max, display);
     onChange(asPercent ? display / 100 : display);

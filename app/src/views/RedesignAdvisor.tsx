@@ -164,7 +164,7 @@ export function RedesignAdvisor({
           : `Spending outruns both strategies: the portfolio depletes at age ${seq.sellDepletionAge} without the HECM and age ${seq.bridgeDepletionAge} with the bridge. Consider lower annual spending, or test a smaller market drop.`;
 
   const networthInsight = hasLien
-    ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? 'spent on lifestyle here, so the gain shows as cash flow, not wealth' : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
+    ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? `spent on lifestyle here (${usd(cmp.cumulativeFreedPayment)} of freed spending over ${cmp.freedPaymentYears} yrs), so the gain shows as cash flow, not wealth` : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
     : `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(locEqRow.rmNetWorth)} at age ${locEqRow.age}, vs ${usd(locEqRow.homeValue)} if no reverse mortgage were taken — a ${usd(locEqRow.homeValue - locEqRow.rmNetWorth)} difference from accrued borrowing and costs.`;
 
   const insights: Record<StageView, string> = {
@@ -315,11 +315,23 @@ export function RedesignAdvisor({
                   <div className="scenario-bar seq-controls">
                     <NumberField label="Mortgage rate" value={inp.existingLienRate} onChange={(v) => set('existingLienRate', v)} asPercent min={0} max={20} tip="Interest rate on the existing mortgage the HECM paid off. Auto-filled from the live 30yr rate; edit to the client's actual rate." />
                     <NumberField label="Yrs left" value={inp.existingLienTermRemaining} onChange={(v) => set('existingLienTermRemaining', v)} min={0} max={40} tip="Years left on that mortgage at closing — used to amortize the residual balance in the no-HECM world." />
+                    <NumberField label="Mortgage pmt/mo" value={cmp.monthlyMortgagePayment} onChange={(v) => set('existingLienPayment', v)} suffix="$" min={0} tip="Monthly principal & interest on the mortgage the HECM pays off. Auto-calculated from the balance, rate, and years left; type the client's actual payment to override, or set to 0 to recalculate. This drives the freed cash flow and the no-HECM amortization." />
                     <NumberField label="Portfolio" value={inp.portfolioValue} onChange={(v) => set('portfolioValue', v)} suffix="$" min={0} tip="The client's investment portfolio, which funds living spending in both worlds." />
                     <NumberField label="Spending / yr" value={inp.annualSpending} onChange={(v) => set('annualSpending', v)} suffix="$" min={0} tip="Annual living expenses, funded equally in both worlds. The no-HECM world also pays the mortgage from this portfolio." />
                     <ToggleField label="Spend freed payment?" value={inp.freedCashConsumed} onChange={(v) => set('freedCashConsumed', v)} tip="On: the client spends the money the HECM freed up (a lifestyle gain, not wealth). Off: that cash stays invested in the portfolio." />
                   </div>
                   <MortgageComparisonChart rows={cmp.rows} targetAge={markerAge} />
+                  <p className="freed-cashflow">
+                    <span className="freed-label">Freed cash flow</span>
+                    <span className="freed-value">{usd(cmp.annualMortgagePayment)}/yr</span>
+                    <span className="freed-sep">·</span>
+                    <span className="freed-value">{usd(cmp.cumulativeFreedPayment)}</span>
+                    <span className="freed-note">
+                      over {cmp.freedPaymentYears} yr{cmp.freedPaymentYears === 1 ? '' : 's'} — the
+                      mortgage payment the HECM eliminates, freed to{' '}
+                      {inp.freedCashConsumed ? 'spend' : 'invest'}
+                    </span>
+                  </p>
                   <p className="chart-caption">
                     Illustrative, equal-spending comparison: {pct(inp.existingLienRate, 2)} mortgage with{' '}
                     {inp.existingLienTermRemaining} yrs left, {pct(inp.investmentReturn, 1)} portfolio return,{' '}
@@ -413,7 +425,7 @@ export function RedesignAdvisor({
           <ToggleField label="Finance Costs in Loan?" value={inp.costsInLoan} onChange={(v) => set('costsInLoan', v)} tip="When on, all closing costs and the initial MIP are added to the loan balance instead of paid out of pocket." />
           <ToggleField label="Finance MIP Only?" value={inp.financeMipOnly} onChange={(v) => set('financeMipOnly', v)} disabled={inp.costsInLoan} tip="When on (and 'Finance Costs in Loan?' is off), only the initial MIP is financed into the loan; all other closing costs are paid out of pocket. Ignored while 'Finance Costs in Loan?' is on, since everything is financed then." />
           <NumberField label="Initial MIP" value={result.initialMIP} onChange={(v) => setCost('initialMipOverride', v)} suffix="$" min={0} tip="Up-front FHA Mortgage Insurance Premium. Auto-calculated at 2% of the max claim amount; type an exact figure to override, or set to 0 to recalculate." />
-          <NumberField label="Origination Fee" value={result.calculatedOriginationFee} onChange={(v) => setCost('originationOverride', v)} suffix="$" min={-1} tip="Auto-calculated by the HUD tier formula: 2% of the first $200k of the max claim amount + 1% above, floored at $2,500 and capped at $6,000 (so it is not a flat $6,000 on lower-value homes). Type an exact figure to override — including $0 to waive it — or clear the field to recalculate." />
+          <NumberField label="Origination Fee" value={result.calculatedOriginationFee} onChange={(v) => setCost('originationOverride', v)} suffix="$" min={-1} emptyValue={-1} tip="Auto-calculated by the HUD tier formula: 2% of the first $200k of the max claim amount + 1% above, floored at $2,500 and capped at $6,000 (so it is not a flat $6,000 on lower-value homes). Type an exact figure to override — including $0 to waive it — or clear the field to recalculate." />
           <NumberField label="Origination Discount" value={inp.costs.originationDiscount} onChange={(v) => setCost('originationDiscount', v)} suffix="$" min={0} tip="Any lender credit or charge added to the origination fee above." />
           <NumberField label="Counseling (POC)" value={inp.costs.counselingCost} onChange={(v) => setCost('counselingCost', v)} suffix="$" min={0} tip="HUD-required counseling fee, paid out of pocket (POC)." />
           <NumberField label="Appraisal (POC)" value={inp.costs.appraisalPOC} onChange={(v) => setCost('appraisalPOC', v)} suffix="$" min={0} tip="Home appraisal fee, paid out of pocket (POC)." />

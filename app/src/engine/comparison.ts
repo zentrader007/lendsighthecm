@@ -31,7 +31,12 @@ export interface ComparisonRow {
 
 export interface ComparisonResult {
   rows: ComparisonRow[];
+  monthlyMortgagePayment: number; // effective monthly P&I (override or auto)
   annualMortgagePayment: number;
+  // Cash-flow benefit: the mortgage payment the HECM eliminates, over the lien's
+  // remaining life (the no-HECM world would have paid it off after that anyway).
+  freedPaymentYears: number;
+  cumulativeFreedPayment: number;
   noHecmDepletionYear: number | null;
   noHecmDepletionAge: number | null;
   hecmDepletionYear: number | null;
@@ -46,15 +51,17 @@ export function monthlyMortgagePayment(balance: number, annualRate: number, term
   return -PMT(annualRate / 12, termYears * 12, balance, 0, 0);
 }
 
-/** Remaining mortgage balance after `t` years, amortized; 0 once paid off. */
+/** Remaining mortgage balance after `t` years, amortized; 0 once paid off. An
+ *  explicit `payment` (monthly) overrides the auto-amortized figure. */
 export function residualMortgage(
   balance: number,
   annualRate: number,
   termYears: number,
   t: number,
+  payment?: number,
 ): number {
   if (balance <= 0 || termYears <= 0 || t >= termYears) return 0;
-  const m = monthlyMortgagePayment(balance, annualRate, termYears);
+  const m = payment && payment > 0 ? payment : monthlyMortgagePayment(balance, annualRate, termYears);
   if (annualRate === 0) return Math.max(0, balance - m * 12 * t);
   // FV of the balance owed (pv negative) net of the payments made (pmt positive).
   return Math.max(0, FV(annualRate / 12, t * 12, m, -balance, 0));
@@ -67,7 +74,12 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   const lien = Math.max(0, inp.existingLiens);
   const lienRate = Math.max(0, inp.existingLienRate);
   const lienTerm = Math.min(Math.max(Math.floor(inp.existingLienTermRemaining) || 0, 0), 40);
-  const annualPI = 12 * monthlyMortgagePayment(lien, lienRate, lienTerm);
+  // Monthly P&I: the client's actual payment if entered, else auto-amortized.
+  const monthlyPI =
+    inp.existingLienPayment > 0
+      ? inp.existingLienPayment
+      : monthlyMortgagePayment(lien, lienRate, lienTerm);
+  const annualPI = 12 * monthlyPI;
   const spend = Math.max(0, inp.annualSpending);
   const r = inp.investmentReturn;
   // OOP closing costs reduce the HECM-world portfolio at t=0; when costs are
@@ -82,7 +94,7 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   const rows: ComparisonRow[] = [];
   for (let t = 0; t <= N; t++) {
     const row = hecm.projection[t];
-    const resid = residualMortgage(lien, lienRate, lienTerm, t);
+    const resid = residualMortgage(lien, lienRate, lienTerm, t, monthlyPI);
 
     if (t > 0) {
       const piThisYear = t <= lienTerm ? annualPI : 0;
@@ -117,9 +129,13 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   }
 
   const age0 = inp.age;
+  const freedPaymentYears = Math.min(lienTerm, N);
   return {
     rows,
+    monthlyMortgagePayment: monthlyPI,
     annualMortgagePayment: annualPI,
+    freedPaymentYears,
+    cumulativeFreedPayment: annualPI * freedPaymentYears,
     noHecmDepletionYear,
     noHecmDepletionAge: noHecmDepletionYear === null ? null : age0 + noHecmDepletionYear,
     hecmDepletionYear,

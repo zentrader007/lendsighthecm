@@ -86,6 +86,7 @@ export interface SimulationInputs {
   // HECM-vs-keep-mortgage comparison (used when existing liens are paid off)
   existingLienRate: number; // interest rate on the mortgage being paid off
   existingLienTermRemaining: number; // years left on that mortgage at closing
+  existingLienPayment: number; // monthly P&I override; 0 = auto-amortize from rate/term
   freedCashConsumed: boolean; // true = the avoided P&I is spent (lifestyle), not invested
 
   // Per-year schedules (index 0 = year 1). Beginning-of-year amounts.

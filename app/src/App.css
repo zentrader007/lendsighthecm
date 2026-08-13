@@ -618,6 +618,30 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
   text-align: center;
 }
 
+.freed-cashflow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px 7px;
+  margin: 12px 0 0;
+  padding: 11px 16px;
+  background: rgba(212, 133, 74, 0.1);
+  border-left: 2px solid #d4854a;
+  border-radius: var(--radius-sm);
+  color: var(--navy);
+}
+.freed-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #b9702f;
+}
+.freed-value { font-family: var(--font-mono); font-weight: 700; font-size: 15px; }
+.freed-sep { color: var(--muted); }
+.freed-note { flex-basis: 100%; text-align: center; font-size: 13px; color: var(--muted); }
+
 .app-disclaimer {
   margin-top: 26px;
   padding: 16px 18px 4px;

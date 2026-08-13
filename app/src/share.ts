@@ -73,6 +73,7 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
       inp.existingLienTermRemaining,
       defaultInputs.existingLienTermRemaining,
     ),
+    existingLienPayment: numOr(inp.existingLienPayment, defaultInputs.existingLienPayment),
     freedCashConsumed: Boolean(inp.freedCashConsumed),
     beginningYear: numOr(inp.beginningYear, defaultInputs.beginningYear),
     projectionYears: numOr(inp.projectionYears, defaultInputs.projectionYears),
