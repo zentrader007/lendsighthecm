@@ -14,6 +14,7 @@ interface NumberFieldProps {
   tip?: string;
   plain?: boolean; // no thousands grouping (e.g. calendar years)
   emptyValue?: number; // value committed when the field is cleared (default 0)
+  maxDecimals?: number; // digits shown after the decimal point (default 4)
 }
 
 export function NumberField({
@@ -28,14 +29,16 @@ export function NumberField({
   tip,
   plain,
   emptyValue,
+  maxDecimals,
 }: NumberFieldProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
 
+  const dp = maxDecimals ?? 4;
   const numeric = asPercent ? +(value * 100).toFixed(4) : value;
   const formatted = Number.isNaN(numeric)
     ? ''
-    : numeric.toLocaleString('en-US', { maximumFractionDigits: 4, useGrouping: !plain });
+    : numeric.toLocaleString('en-US', { maximumFractionDigits: dp, useGrouping: !plain });
 
   // Commit a clamped value (min/max are in display units). A cleared field commits
   // to emptyValue (default 0) — clamped into range — so a negative min (e.g. −20%
@@ -59,7 +62,7 @@ export function NumberField({
           disabled={disabled}
           value={editing ? draft : formatted}
           onFocus={(e) => {
-            setDraft(Number.isNaN(numeric) ? '' : String(numeric));
+            setDraft(Number.isNaN(numeric) ? '' : String(+numeric.toFixed(dp)));
             setEditing(true);
             const el = e.target;
             requestAnimationFrame(() => el.select());

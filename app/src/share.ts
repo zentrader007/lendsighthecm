@@ -75,6 +75,7 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
     ),
     existingLienPayment: numOr(inp.existingLienPayment, defaultInputs.existingLienPayment),
     freedCashConsumed: Boolean(inp.freedCashConsumed),
+    freedPaymentInvested: Boolean(inp.freedPaymentInvested),
     beginningYear: numOr(inp.beginningYear, defaultInputs.beginningYear),
     projectionYears: numOr(inp.projectionYears, defaultInputs.projectionYears),
     costsInLoan: Boolean(inp.costsInLoan),

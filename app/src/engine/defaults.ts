@@ -53,6 +53,7 @@ export const defaultInputs: SimulationInputs = {
   existingLienTermRemaining: 25,
   existingLienPayment: 0, // 0 = auto-amortize from rate/term; > 0 overrides
   freedCashConsumed: false,
+  freedPaymentInvested: false, // false = freed P&I reduces drawdown; true = invested as new savings
   draws: Array(38).fill(0),
   payments: Array(38).fill(0),
   costs: defaultCosts,

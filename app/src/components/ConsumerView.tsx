@@ -1,12 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { SimulationInputs, SimulationResult } from '../engine';
 import { runMortgageComparison } from '../engine/comparison';
-import {
-  LocChart,
-  HomeEquityChart,
-  NetWorthChart,
-  MortgageComparisonChart,
-} from './Charts';
+import { LocChart, HomeEquityChart, MortgageComparisonChart } from './Charts';
 import { usd } from '../format';
 
 type ConsumerStage = 'loc' | 'networth' | 'equity';
@@ -43,7 +38,7 @@ export function ConsumerView({
     loc: `Your starting line of credit of ${usd(startLOC)} could grow to about ${usd(r85.availableLOC)} by age ${r85.age} — even if your home's value never changes.`,
     networth: hasLien
       ? `By age ${cmpLast.age}, using the reverse mortgage to pay off your ${usd(inputs.existingLiens)} mortgage leaves a projected net worth of ${usd(cmpLast.netWorthHecm)}, versus ${usd(cmpLast.netWorthNoHecm)} if you keep your current mortgage — because the reverse mortgage removes your monthly payment.`
-      : `With the reverse mortgage, your projected net worth (home equity minus the loan balance and costs) is ${usd(r85.rmNetWorth)} at age ${r85.age}, versus ${usd(r85.homeValue)} in home value if you took no reverse mortgage. The difference is the cost of the borrowing and the loan's growth over time.`,
+      : `With the reverse mortgage, your projected net worth at age ${cmpLast.age} is ${usd(cmpLast.netWorthHecm)} — your home equity after the loan balance, plus the ${usd(inputs.initialCashDraw)} you take at closing invested — versus ${usd(cmpLast.netWorthNoHecm)} if you take no reverse mortgage. The difference reflects the loan's growth and costs, set against those invested proceeds.`,
     equity: `At age ${r85.age} your home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity for you or your heirs.`,
   };
 
@@ -102,16 +97,9 @@ export function ConsumerView({
         </div>
 
         {stage === 'loc' && <LocChart projection={result.projection} consumer />}
-        {stage === 'networth' &&
-          (hasLien ? (
-            <MortgageComparisonChart rows={cmp.rows} consumer />
-          ) : (
-            <NetWorthChart
-              projection={result.projection}
-              cashAtClosing={inputs.initialCashDraw}
-              consumer
-            />
-          ))}
+        {stage === 'networth' && (
+          <MortgageComparisonChart rows={cmp.rows} consumer noLien={!hasLien} />
+        )}
         {stage === 'equity' && <HomeEquityChart projection={result.projection} consumer />}
 
         <p className="consumer-callout">{insights[stage]}</p>

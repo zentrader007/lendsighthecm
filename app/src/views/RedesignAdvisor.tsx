@@ -21,9 +21,6 @@ const HomeEquityChart = lazy(() =>
 const InvestChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.InvestChart })),
 );
-const NetWorthChart = lazy(() =>
-  import('../components/Charts').then((m) => ({ default: m.NetWorthChart })),
-);
 const SequenceChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.SequenceChart })),
 );
@@ -117,6 +114,9 @@ export function RedesignAdvisor({
   const hasLien = inp.existingLiens > 0;
   const cmp = useMemo(() => runMortgageComparison(inp), [inp]);
   const cmpLast = cmp.rows[cmp.rows.length - 1];
+  // The freed payment is invested as new savings (vs. merely reducing drawdown)
+  // only when it's kept invested rather than spent.
+  const buildSavingsActive = inp.freedPaymentInvested && !inp.freedCashConsumed;
 
   const seq = useMemo(() => runSequenceAnalysis(inp), [inp]);
   const seqLast = seq.rows[seq.rows.length - 1];
@@ -137,11 +137,9 @@ export function RedesignAdvisor({
       case 'loc':
         return <>{usd(tRow.availableLOC)} available credit · {usd(tRow.equity)} home equity</>;
       case 'networth':
-        return hasLien && tCmp ? (
-          <>{usd(tCmp.netWorthHecm)} net worth with HECM · {usd(tCmp.netWorthNoHecm)} keeping the mortgage</>
-        ) : (
-          <>{usd(tRow.rmNetWorth)} net worth with HECM · {usd(tRow.homeValue)} home value (no HECM)</>
-        );
+        return tCmp ? (
+          <>{usd(tCmp.netWorthHecm)} net worth with HECM · {usd(tCmp.netWorthNoHecm)} {hasLien ? 'keeping the mortgage' : 'without a reverse mortgage'}</>
+        ) : null;
       case 'equity':
         return <>{usd(tRow.homeValue)} home value · {usd(tRow.upb)} loan balance · {usd(tRow.equity)} equity</>;
       case 'invest':
@@ -164,9 +162,14 @@ export function RedesignAdvisor({
           ? `At this spending level the bridge does not help: even drawing from the credit line, the portfolio runs dry at age ${seq.bridgeDepletionAge}, while selling assets alone funds spending through age ${seqLast.age}. The standby line's capacity is finite — lower the spending or shorten the bridge.`
           : `Spending outruns both strategies: the portfolio depletes at age ${seq.sellDepletionAge} without the HECM and age ${seq.bridgeDepletionAge} with the bridge. Consider lower annual spending, or test a smaller market drop.`;
 
+  const freedDesc = inp.freedCashConsumed
+    ? `spent on lifestyle here (${usd(cmp.cumulativeFreedPayment)} of freed spending over ${cmp.freedPaymentYears} yrs), so the gain shows as cash flow, not wealth`
+    : buildSavingsActive
+      ? `invested here as new savings, compounding to ${usd(cmpRow.freedInvested)} by age ${cmpRow.age} — this is what lifts net worth even when the portfolio starts at $0`
+      : 'kept invested here, so it compounds in the portfolio';
   const networthInsight = hasLien
-    ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${inp.freedCashConsumed ? `spent on lifestyle here (${usd(cmp.cumulativeFreedPayment)} of freed spending over ${cmp.freedPaymentYears} yrs), so the gain shows as cash flow, not wealth` : 'kept invested here, so it compounds in the portfolio'}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
-    : `Net worth with the HECM (home equity minus loan balance and the cost drag) is ${usd(locEqRow.rmNetWorth)} at age ${locEqRow.age}, vs ${usd(locEqRow.homeValue)} if no reverse mortgage were taken — a ${usd(locEqRow.homeValue - locEqRow.rmNetWorth)} difference from accrued borrowing and costs.`;
+    ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${freedDesc}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
+    : `At age ${cmpRow.age}, net worth with the HECM is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio, including the ${usd(inp.initialCashDraw)} of proceeds invested at ${pct(inp.investmentReturn, 1)}), vs ${usd(cmpRow.netWorthNoHecm)} with no reverse mortgage (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio). The gap is the growing loan balance and closing costs, set against those proceeds compounding.`;
 
   const insights: Record<StageView, string> = {
     loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
@@ -310,39 +313,67 @@ export function RedesignAdvisor({
         ) : (
           <Suspense fallback={<div className="chart-loading">Loading chart…</div>}>
             {stage === 'loc' && <LocChart projection={result.projection} targetAge={markerAge} />}
-            {stage === 'networth' &&
-              (hasLien ? (
-                <>
-                  <div className="scenario-bar seq-controls">
-                    <NumberField label="Mortgage rate" value={inp.existingLienRate} onChange={(v) => set('existingLienRate', v)} asPercent min={0} max={20} tip="Interest rate on the existing mortgage the HECM paid off. Auto-filled from the live 30yr rate; edit to the client's actual rate." />
-                    <NumberField label="Yrs left" value={inp.existingLienTermRemaining} onChange={(v) => set('existingLienTermRemaining', v)} min={0} max={40} tip="Years left on that mortgage at closing — used to amortize the residual balance in the no-HECM world." />
-                    <NumberField label="Mortgage pmt/mo" value={cmp.monthlyMortgagePayment} onChange={(v) => set('existingLienPayment', v)} suffix="$" min={0} tip="Monthly principal & interest on the mortgage the HECM pays off. Auto-calculated from the balance, rate, and years left; type the client's actual payment to override, or set to 0 to recalculate. This drives the freed cash flow and the no-HECM amortization." />
-                    <NumberField label="Portfolio" value={inp.portfolioValue} onChange={(v) => set('portfolioValue', v)} suffix="$" min={0} tip="The client's investment portfolio, which funds living spending in both worlds." />
-                    <NumberField label="Spending / yr" value={inp.annualSpending} onChange={(v) => set('annualSpending', v)} suffix="$" min={0} tip="Annual living expenses, funded equally in both worlds. The no-HECM world also pays the mortgage from this portfolio." />
-                    <ToggleField label="Spend freed payment?" value={inp.freedCashConsumed} onChange={(v) => set('freedCashConsumed', v)} tip="On: the client spends the money the HECM freed up (a lifestyle gain, not wealth). Off: that cash stays invested in the portfolio." />
-                  </div>
-                  <MortgageComparisonChart rows={cmp.rows} targetAge={markerAge} />
-                  <p className="freed-cashflow">
-                    <span className="freed-label">Freed cash flow</span>
-                    <span className="freed-value">{usd(cmp.annualMortgagePayment)}/yr</span>
-                    <span className="freed-sep">·</span>
-                    <span className="freed-value">{usd(cmp.cumulativeFreedPayment)}</span>
-                    <span className="freed-note">
-                      over {cmp.freedPaymentYears} yr{cmp.freedPaymentYears === 1 ? '' : 's'} — the
-                      mortgage payment the HECM eliminates, freed to{' '}
-                      {inp.freedCashConsumed ? 'spend' : 'invest'}
-                    </span>
-                  </p>
+            {stage === 'networth' && (
+              <>
+                <div className="scenario-bar seq-controls">
+                  {hasLien && (
+                    <>
+                      <NumberField label="Mortgage rate" value={inp.existingLienRate} onChange={(v) => set('existingLienRate', v)} asPercent min={0} max={20} tip="Interest rate on the existing mortgage the HECM paid off. Auto-filled from the live 30yr rate; edit to the client's actual rate." />
+                      <NumberField label="Yrs left" value={inp.existingLienTermRemaining} onChange={(v) => set('existingLienTermRemaining', v)} min={0} max={40} tip="Years left on that mortgage at closing — used to amortize the residual balance in the no-HECM world." />
+                      <NumberField label="Mortgage pmt/mo" value={cmp.monthlyMortgagePayment} onChange={(v) => set('existingLienPayment', v)} suffix="$" min={0} maxDecimals={2} tip="Monthly principal & interest on the mortgage the HECM pays off. Auto-calculated from the balance, rate, and years left; type the client's actual payment to override, or set to 0 to recalculate. This drives the freed cash flow and the no-HECM amortization." />
+                    </>
+                  )}
+                  <NumberField label="Portfolio" value={inp.portfolioValue} onChange={(v) => set('portfolioValue', v)} suffix="$" min={0} tip="The client's investment portfolio, which funds living spending in both worlds." />
+                  <NumberField label="Spending / yr" value={inp.annualSpending} onChange={(v) => set('annualSpending', v)} suffix="$" min={0} tip={hasLien ? 'Annual living expenses, funded equally in both worlds. In the default mode the no-HECM world also pays the mortgage from this portfolio.' : 'Annual living expenses, drawn from the portfolio in both worlds.'} />
+                  <NumberField label="Inv. return" value={inp.investmentReturn} onChange={(v) => set('investmentReturn', v)} asPercent min={-20} max={30} tip="Annual return on the portfolio and any invested HECM proceeds." />
+                  {hasLien && (
+                    <>
+                      <ToggleField label="Spend freed payment?" value={inp.freedCashConsumed} onChange={(v) => set('freedCashConsumed', v)} tip="On: the client spends the money the HECM freed up (a lifestyle gain, not wealth). Off: that cash stays invested in the portfolio." />
+                      <ToggleField label="Build savings from it?" value={inp.freedPaymentInvested} onChange={(v) => set('freedPaymentInvested', v)} disabled={inp.freedCashConsumed} tip="On: model the freed mortgage payment as new money invested each year — assumes the mortgage was paid from income, so the payment becomes savings that compounds and lifts net worth even from a $0 portfolio. Off: the freed payment simply reduces how much is drawn from an existing portfolio (so it only helps when there's a portfolio to preserve). No effect while 'Spend freed payment?' is on." />
+                    </>
+                  )}
+                </div>
+                <MortgageComparisonChart rows={cmp.rows} targetAge={markerAge} noLien={!hasLien} />
+                {hasLien ? (
+                  <>
+                    <p className="freed-cashflow">
+                      <span className="freed-label">Freed cash flow</span>
+                      <span className="freed-value">{usd(cmp.annualMortgagePayment)}/yr</span>
+                      <span className="freed-sep">·</span>
+                      <span className="freed-value">{usd(cmp.cumulativeFreedPayment)}</span>
+                      <span className="freed-note">
+                        over {cmp.freedPaymentYears} yr{cmp.freedPaymentYears === 1 ? '' : 's'} — the
+                        mortgage payment the HECM eliminates, freed to{' '}
+                        {inp.freedCashConsumed ? 'spend' : buildSavingsActive ? 'invest as new savings' : 'invest'}
+                      </span>
+                      {buildSavingsActive && (
+                        <span className="freed-grow">
+                          → grows to {usd(cmpRow.freedInvested)} invested by age {cmpRow.age}
+                        </span>
+                      )}
+                    </p>
+                    <p className="chart-caption">
+                      Illustrative, equal-spending comparison: {pct(inp.existingLienRate, 2)} mortgage with{' '}
+                      {inp.existingLienTermRemaining} yrs left, {pct(inp.investmentReturn, 1)} portfolio return,{' '}
+                      {pct(inp.appreciation, 1)} appreciation. Freed payment is{' '}
+                      {inp.freedCashConsumed
+                        ? 'spent'
+                        : buildSavingsActive
+                          ? 'invested as new savings (mortgage assumed paid from income)'
+                          : 'kept invested (reduces portfolio drawdown)'}.
+                    </p>
+                  </>
+                ) : (
                   <p className="chart-caption">
-                    Illustrative, equal-spending comparison: {pct(inp.existingLienRate, 2)} mortgage with{' '}
-                    {inp.existingLienTermRemaining} yrs left, {pct(inp.investmentReturn, 1)} portfolio return,{' '}
-                    {pct(inp.appreciation, 1)} appreciation. Freed payment is{' '}
-                    {inp.freedCashConsumed ? 'spent' : 'invested'}.
+                    Net worth over time with no existing mortgage: the HECM frees {usd(inp.initialCashDraw)} of
+                    proceeds (invested here at {pct(inp.investmentReturn, 1)}) against a growing loan balance, vs.
+                    doing nothing — equal {usd(inp.annualSpending)}/yr spending is drawn from the portfolio in both.
+                    There's no monthly payment to free up without a mortgage; add a balance under Liens to model
+                    paying one off and unlock the freed-payment options.
                   </p>
-                </>
-              ) : (
-                <NetWorthChart projection={result.projection} cashAtClosing={inp.initialCashDraw} targetAge={markerAge} />
-              ))}
+                )}
+              </>
+            )}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} targetAge={markerAge} />}
             {stage === 'invest' && <InvestChart projection={result.projection} targetAge={markerAge} />}
             {stage === 'seqrisk' && (

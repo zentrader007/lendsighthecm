@@ -263,15 +263,32 @@ export function NetWorthChart({
   );
 }
 
-export function MortgageComparisonChart({ rows, targetAge, consumer }: { rows: ComparisonRow[]; targetAge?: number; consumer?: boolean }) {
+export function MortgageComparisonChart({ rows, targetAge, consumer, noLien }: { rows: ComparisonRow[]; targetAge?: number; consumer?: boolean; noLien?: boolean }) {
   const data = rows.map((r) => ({
     age: r.age,
     netWorthHecm: r.netWorthHecm,
     netWorthNoHecm: r.netWorthNoHecm,
   }));
   const m = atAge(data, targetAge);
+  // Without a mortgage to pay off, the baseline is "do nothing" rather than
+  // "keep the mortgage", so the title and the no-HECM line are relabeled.
+  const title = noLien
+    ? consumer
+      ? 'Your net worth: with vs. without a reverse mortgage'
+      : 'Net Worth Over Time: With HECM vs. Without'
+    : consumer
+      ? 'Net worth: reverse mortgage vs. keeping your mortgage'
+      : 'Net Worth: HECM (mortgage paid off) vs. Keeping the Mortgage';
+  const hecmName = consumer ? 'With the reverse mortgage' : noLien ? 'Net worth — with HECM' : 'Net worth — HECM (mortgage paid off)';
+  const noHecmName = noLien
+    ? consumer
+      ? 'Without a reverse mortgage'
+      : 'Net worth — no reverse mortgage'
+    : consumer
+      ? 'Keeping your mortgage'
+      : 'Net worth — keep the mortgage';
   return (
-    <ChartCard title={consumer ? 'Net worth: reverse mortgage vs. keeping your mortgage' : 'Net Worth: HECM (mortgage paid off) vs. Keeping the Mortgage'}>
+    <ChartCard title={title}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
@@ -279,8 +296,8 @@ export function MortgageComparisonChart({ rows, targetAge, consumer }: { rows: C
           <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
-          <Line type="monotone" dataKey="netWorthHecm" name={consumer ? 'With the reverse mortgage' : 'Net worth — HECM (mortgage paid off)'} stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
-          <Line type="monotone" dataKey="netWorthNoHecm" name={consumer ? 'Keeping your mortgage' : 'Net worth — keep the mortgage'} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="netWorthHecm" name={hecmName} stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
+          <Line type="monotone" dataKey="netWorthNoHecm" name={noHecmName} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
           {m && (
             <>
               {markerLine(m.age)}

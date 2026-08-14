@@ -88,6 +88,10 @@ export interface SimulationInputs {
   existingLienTermRemaining: number; // years left on that mortgage at closing
   existingLienPayment: number; // monthly P&I override; 0 = auto-amortize from rate/term
   freedCashConsumed: boolean; // true = the avoided P&I is spent (lifestyle), not invested
+  // true = model the freed P&I as new invested savings (mortgage funded from
+  // income), so it compounds in its own bucket and lifts net worth even from a
+  // $0 portfolio. false = the freed P&I simply reduces portfolio drawdown.
+  freedPaymentInvested: boolean;
 
   // Per-year schedules (index 0 = year 1). Beginning-of-year amounts.
   draws: number[];

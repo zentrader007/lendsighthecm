@@ -24,7 +24,8 @@ export interface ComparisonRow {
   // HECM world (mortgage paid off at closing, standby line)
   hecmBalance: number;
   homeEquityHecm: number;
-  portfolioHecm: number;
+  portfolioHecm: number; // includes the invested freed-payment bucket in build-savings mode
+  freedInvested: number; // the freed P&I invested as new savings (0 unless build-savings mode)
   availableLOC: number;
   netWorthHecm: number;
 }
@@ -37,6 +38,10 @@ export interface ComparisonResult {
   // remaining life (the no-HECM world would have paid it off after that anyway).
   freedPaymentYears: number;
   cumulativeFreedPayment: number;
+  // Build-savings mode only: what the invested freed payment compounds to by the
+  // end of the projection (0 otherwise). The nominal cash sum above, grown at the
+  // investment return.
+  freedInvestedValue: number;
   noHecmDepletionYear: number | null;
   noHecmDepletionAge: number | null;
   hecmDepletionYear: number | null;
@@ -86,8 +91,25 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   // financed they sit in the HECM balance instead (already in hecm.upb).
   const oop = hecm.pocCosts;
 
+  // With no mortgage to pay off, the HECM's benefit is the cash it provides: the
+  // borrower's initial draw becomes an investable asset. Credit it to the HECM
+  // portfolio so the no-lien net-worth comparison is honest — otherwise the
+  // growing loan balance reads as a pure loss with nothing on the other side.
+  // In the lien case the proceeds go to the payoff, so that comparison already
+  // stands on its own and is left unchanged.
+  const hecmProceeds = lien > 0 ? 0 : Math.max(0, inp.initialCashDraw);
+
+  // Build-savings mode: treat the mortgage as funded from income, so the freed
+  // P&I becomes new savings the HECM client invests — a dedicated bucket that
+  // compounds and lifts net worth even from a $0 portfolio. For an apples-to-
+  // apples comparison, the no-HECM world then also funds its P&I from income
+  // (its portfolio isn't drained by the payment). Only meaningful when the freed
+  // cash is invested rather than consumed.
+  const buildSavings = inp.freedPaymentInvested && !inp.freedCashConsumed;
+
   let pNoHecm = inp.portfolioValue;
-  let pHecm = inp.portfolioValue - oop;
+  let pHecm = inp.portfolioValue - oop + hecmProceeds;
+  let freedInvested = 0;
   let noHecmDepletionYear: number | null = null;
   let hecmDepletionYear: number | null = null;
 
@@ -98,8 +120,10 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
 
     if (t > 0) {
       const piThisYear = t <= lienTerm ? annualPI : 0;
-      // No-HECM: living spending + mortgage P&I (while the lien runs).
-      const drawNoHecm = spend + piThisYear;
+      // No-HECM: living spending + mortgage P&I (while the lien runs) — unless
+      // build-savings mode funds that P&I from income, leaving the portfolio
+      // untouched by it.
+      const drawNoHecm = spend + (buildSavings ? 0 : piThisYear);
       if (pNoHecm > 0 && pNoHecm < drawNoHecm && noHecmDepletionYear === null)
         noHecmDepletionYear = t;
       pNoHecm = Math.max(0, pNoHecm - drawNoHecm) * (1 + r);
@@ -109,9 +133,15 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
       const drawHecm = spend + (inp.freedCashConsumed ? piThisYear : 0);
       if (pHecm > 0 && pHecm < drawHecm && hecmDepletionYear === null) hecmDepletionYear = t;
       pHecm = Math.max(0, pHecm - drawHecm) * (1 + r);
+
+      // The freed payment invested as new savings — its own compounding bucket,
+      // fed while the lien runs, then left to grow. Independent of the spending
+      // drawdown, so it builds up from any starting portfolio (including $0).
+      if (buildSavings) freedInvested = (freedInvested + piThisYear) * (1 + r);
     }
 
     const homeEquityNoHecm = Math.max(0, row.homeValue - resid);
+    const portfolioHecm = pHecm + freedInvested;
     rows.push({
       year: t,
       age: row.age,
@@ -122,9 +152,10 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
       netWorthNoHecm: homeEquityNoHecm + pNoHecm,
       hecmBalance: row.upb,
       homeEquityHecm: row.equity,
-      portfolioHecm: pHecm,
+      portfolioHecm,
+      freedInvested,
       availableLOC: row.availableLOC,
-      netWorthHecm: row.equity + pHecm,
+      netWorthHecm: row.equity + portfolioHecm,
     });
   }
 
@@ -136,6 +167,7 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
     annualMortgagePayment: annualPI,
     freedPaymentYears,
     cumulativeFreedPayment: annualPI * freedPaymentYears,
+    freedInvestedValue: freedInvested,
     noHecmDepletionYear,
     noHecmDepletionAge: noHecmDepletionYear === null ? null : age0 + noHecmDepletionYear,
     hecmDepletionYear,
