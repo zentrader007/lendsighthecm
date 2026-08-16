@@ -53,8 +53,8 @@ export function ProjectionTableEditable({
             <th>Loan Balance <InfoTip text="Unpaid principal balance — financed costs, liens, and any draws, plus accrued interest and MIP." /></th>
             <th>Home Equity <InfoTip text="Projected home value minus the loan balance — the equity remaining to the owner or heirs." /></th>
             <th>Home Value <InfoTip text="Projected home value, grown each year at the assumed appreciation rate." /></th>
-            <th>Investment <InfoTip text="The loan proceeds if invested instead, compounding each year at the assumed (after-tax) investment return — the invested-assets side of the Invest comparison. If closing costs are paid out of pocket rather than financed, that amount is subtracted from the starting invested balance." /></th>
-            <th>Invest + Equity <InfoTip text="Invested proceeds plus remaining home equity — the 'Investment + Equity' line on the Invest comparison chart." /></th>
+            <th>Investment <InfoTip text="The cash actually drawn at closing, if invested instead — compounding each year at the assumed (after-tax) return. Excludes any loan amount that pays off an existing lien (that's not cash in hand) and nets out out-of-pocket closing costs. Illustration only: in most cases you should not draw home equity to invest." /></th>
+            <th>Invest + Equity <InfoTip text="Invested cash drawn plus remaining home equity — the 'Investment + Equity' line on the Invest comparison chart." /></th>
             <th>Tenure/Mo <InfoTip text="The monthly tenure payment the remaining credit could fund for life from that age." /></th>
             <th>Accrual <InfoTip text="The annual rate (index + margin + MIP) applied to the balance and credit line that year." /></th>
             <th>Deduction <InfoTip text="Interest paid that year that may be tax-deductible when the loan is repaid. Not tax advice." /></th>

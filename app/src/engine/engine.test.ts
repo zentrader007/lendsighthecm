@@ -107,6 +107,23 @@ describe('Guardrails', () => {
     expect(Number.isFinite(taxed.projection[1].investment)).toBe(true);
   });
 
+  it('year-0 investment is the cash drawn, not a lien payoff', () => {
+    // A lien is paid off with proceeds, not handed to the borrower as cash — so
+    // paying off a $230k lien with a $0 cash draw must show ~$0 investable, never
+    // the $230k that discharged the debt.
+    const lienPaidNoCash = runSimulation({
+      ...defaultInputs,
+      homeValue: 1_250_000,
+      existingLiens: 230_000,
+      initialCashDraw: 0,
+    });
+    expect(lienPaidNoCash.projection[0].investment).toBeLessThan(1);
+
+    // With no lien, the invested balance is the cash draw net of out-of-pocket costs.
+    const cashOut = runSimulation({ ...defaultInputs, existingLiens: 0, initialCashDraw: 50_000 });
+    near(cashOut.projection[0].investment, 50_000 - cashOut.pocCosts, 1);
+  });
+
   it('clamps projection years to the 38-year historical window', () => {
     const long = runSimulation({ ...defaultInputs, projectionYears: 80 });
     expect(long.projection.length).toBe(39);

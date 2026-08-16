@@ -148,7 +148,7 @@ export function InvestChart({ projection, targetAge }: { projection: ProjectionR
   const data = toData(projection);
   const m = atAge(data, targetAge);
   return (
-    <ChartCard title="Equity Only vs. Invest-the-Proceeds (after tax)">
+    <ChartCard title="Equity Only vs. Invest the Cash Drawn (after tax)">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />

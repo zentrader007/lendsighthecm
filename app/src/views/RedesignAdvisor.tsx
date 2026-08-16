@@ -175,7 +175,7 @@ export function RedesignAdvisor({
     loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
     networth: networthInsight,
     equity: `At age ${locEqRow.age} the home is projected at ${usd(locEqRow.homeValue)} with a ${usd(locEqRow.upb)} loan balance — leaving ${usd(locEqRow.equity)} in equity.`,
-    invest: `By age ${investRow.age}, investing the proceeds plus remaining equity totals ${usd(investRow.investmentPlusEquity)}, vs ${usd(investRow.equity)} from keeping equity alone.`,
+    invest: `Illustration only — not a recommendation to borrow in order to invest. By age ${investRow.age}, the cash drawn and invested grows to ${usd(investRow.investment)}; with remaining equity that's ${usd(investRow.investmentPlusEquity)}, vs ${usd(investRow.equity)} from equity alone. A lien payoff is excluded — it isn't cash you can invest.`,
     seqrisk: seqInsight,
     table: 'Draw and Payment cells are editable — type a value and the projection updates instantly. The Investment column compounds the invested proceeds; any closing costs paid out of pocket (rather than financed) are subtracted from its starting balance.',
   };
@@ -375,7 +375,17 @@ export function RedesignAdvisor({
               </>
             )}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} targetAge={markerAge} />}
-            {stage === 'invest' && <InvestChart projection={result.projection} targetAge={markerAge} />}
+            {stage === 'invest' && (
+              <>
+                <InvestChart projection={result.projection} targetAge={markerAge} />
+                <p className="chart-caveat">
+                  <strong>For illustration purposes only.</strong> In most cases, you should not
+                  remove equity from a house to invest. This models only the cash actually drawn at
+                  closing (a lien payoff is not investable cash), compounded at the assumed after-tax
+                  return — it is not a recommendation to borrow in order to invest.
+                </p>
+              </>
+            )}
             {stage === 'seqrisk' && (
               <>
                 <div className="scenario-bar seq-controls">

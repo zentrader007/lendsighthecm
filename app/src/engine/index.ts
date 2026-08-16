@@ -114,7 +114,13 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     futurePLF: plf,
     futurePL: plf * effectiveHomeValue,
     cmt10yr: cmt10_0,
-    investment: (initialUPB - totalLoanCost) / (1 - taxRate),
+    // Only the cash the borrower actually draws is investable — NOT the loan
+    // portion that pays off an existing lien (that discharges a debt; it's never
+    // cash in hand) nor the financed closing costs. Net out any out-of-pocket
+    // costs for the true starting balance. (Earlier versions invested the full
+    // net proceeds, wrongly counting a lien payoff as investable cash — so a
+    // $230k lien with a $0 cash draw showed $230k "invested".)
+    investment: Math.max(0, initialUPB - financedCosts - mandatoryObligations - pocCosts) / (1 - taxRate),
     investmentPlusEquity: 0,
     pocDrag: pocCosts,
     rmNetWorth: 0,
