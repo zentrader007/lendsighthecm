@@ -79,9 +79,9 @@ describe('two-world net-worth comparison', () => {
   });
 
   it('build-savings mode: the invested freed payment lifts net worth even from a $0 portfolio', () => {
-    // No portfolio and no living spending to muddy it — the only moving part is
-    // the freed mortgage payment being invested as new savings.
-    const zero = { ...base, portfolioValue: 0, annualSpending: 0 };
+    // No portfolio, no living spending, and no cash draw to muddy it — the only
+    // moving part is the freed mortgage payment being invested as new savings.
+    const zero = { ...base, portfolioValue: 0, annualSpending: 0, initialCashDraw: 0 };
     const plain = runMortgageComparison({ ...zero, freedPaymentInvested: false });
     const built = runMortgageComparison({
       ...zero,
@@ -130,10 +130,9 @@ describe('two-world net-worth comparison', () => {
     for (const row of res.rows) near(row.homeEquityNoHecm, row.homeValue, 0.01);
   });
 
-  it('no lien: the HECM proceeds are credited to the portfolio as an invested asset', () => {
-    // Without a mortgage to pay off, the cash the HECM provides (the initial draw)
-    // is what the borrower gains — it should show up as a portfolio asset, not
-    // vanish. The lien case leaves the proceeds out (they fund the payoff instead).
+  it('the cash the HECM provides is credited to the portfolio as an invested asset', () => {
+    // The cash the HECM hands over (the initial draw) is money in hand — it shows
+    // up as a portfolio asset, net of out-of-pocket costs, not vanishing.
     const res = runMortgageComparison({
       ...base,
       existingLiens: 0,
@@ -143,5 +142,20 @@ describe('two-world net-worth comparison', () => {
     const y0 = res.rows[0];
     expect(y0.portfolioHecm).toBeGreaterThan(y0.portfolioNoHecm);
     near(y0.portfolioHecm - y0.portfolioNoHecm, 100000 - res.hecm.pocCosts, 1);
+  });
+
+  it('credits the cash draw whether or not a lien is present (no toggle shorting)', () => {
+    // A cash draw is an asset in hand, so it must be credited in BOTH cases — or
+    // adding a lien would drop the HECM line as the draw silently vanished. The
+    // loan balance already reflects the draw (lowering equity), so this nets out.
+    const draw = 40_000;
+    const noLien = runMortgageComparison({ ...base, existingLiens: 0, initialCashDraw: draw });
+    const withLien = runMortgageComparison({ ...base, existingLiens: 150_000, initialCashDraw: draw });
+    const lead = (r: ReturnType<typeof runMortgageComparison>) =>
+      r.rows[0].portfolioHecm - r.rows[0].portfolioNoHecm;
+    expect(lead(noLien)).toBeGreaterThan(0);
+    expect(lead(withLien)).toBeGreaterThan(0);
+    // Same draw → same credit (the engine's netCashDrawn), lien or not.
+    near(lead(noLien), lead(withLien), 1);
   });
 });

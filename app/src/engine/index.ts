@@ -59,6 +59,11 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
 
   const baseUPB = financedCosts + mandatoryObligations + initialCashDraw;
   const initialUPB = Math.min(baseUPB, principalLimit);
+  // Cash the borrower actually nets at closing: the loan balance less financed
+  // costs and the lien payoff. Capping-aware (an over-draw shrinks it), never
+  // negative. This — not the full net proceeds — is the investable amount, and
+  // the single source both the Invest and Net-worth comparisons draw from.
+  const netCashDrawn = Math.max(0, initialUPB - financedCosts - mandatoryObligations);
   // availableFunds keeps the raw (possibly negative) figure so the draw/tenure
   // guards below behave exactly as the workbook does. remainingCredit is floored
   // for display, and overDraw reports how far an over-draw exceeded the limit.
@@ -114,13 +119,10 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     futurePLF: plf,
     futurePL: plf * effectiveHomeValue,
     cmt10yr: cmt10_0,
-    // Only the cash the borrower actually draws is investable — NOT the loan
-    // portion that pays off an existing lien (that discharges a debt; it's never
-    // cash in hand) nor the financed closing costs. Net out any out-of-pocket
-    // costs for the true starting balance. (Earlier versions invested the full
-    // net proceeds, wrongly counting a lien payoff as investable cash — so a
-    // $230k lien with a $0 cash draw showed $230k "invested".)
-    investment: Math.max(0, initialUPB - financedCosts - mandatoryObligations - pocCosts) / (1 - taxRate),
+    // Invest only the cash the borrower nets at closing (netCashDrawn), less any
+    // out-of-pocket costs — never a lien payoff, which discharges a debt rather
+    // than handing over investable cash.
+    investment: Math.max(0, netCashDrawn - pocCosts) / (1 - taxRate),
     investmentPlusEquity: 0,
     pocDrag: pocCosts,
     rmNetWorth: 0,
@@ -249,6 +251,7 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     totalCostAllIn,
     calculatedOriginationFee,
     availableInitialDraw,
+    netCashDrawn,
     initialUPB,
     remainingCredit,
     overDraw,

@@ -91,13 +91,13 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   // financed they sit in the HECM balance instead (already in hecm.upb).
   const oop = hecm.pocCosts;
 
-  // With no mortgage to pay off, the HECM's benefit is the cash it provides: the
-  // borrower's initial draw becomes an investable asset. Credit it to the HECM
-  // portfolio so the no-lien net-worth comparison is honest — otherwise the
-  // growing loan balance reads as a pure loss with nothing on the other side.
-  // In the lien case the proceeds go to the payoff, so that comparison already
-  // stands on its own and is left unchanged.
-  const hecmProceeds = lien > 0 ? 0 : Math.max(0, inp.initialCashDraw);
+  // Credit the cash the borrower nets at closing to the HECM portfolio — it's an
+  // asset in hand. The loan balance already reflects that draw (lowering equity),
+  // so this nets out at closing (equity −draw, portfolio +draw) rather than
+  // double-counting; without it a cash draw would read as a pure loss. Uses the
+  // same engine figure the Invest tab does, so the two can't diverge. A lien
+  // payoff is NOT included — it discharges a debt, it isn't cash in hand.
+  const hecmProceeds = hecm.netCashDrawn;
 
   // Build-savings mode: treat the mortgage as funded from income, so the freed
   // P&I becomes new savings the HECM client invests — a dedicated bucket that

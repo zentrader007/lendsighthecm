@@ -147,6 +147,7 @@ export interface SimulationResult {
   totalCostAllIn: number; // totalLoanCost + always-out-of-pocket fees (counseling, appraisal, other POC)
   calculatedOriginationFee: number;
   availableInitialDraw: number;
+  netCashDrawn: number; // cash the borrower nets at closing (draw beyond the lien payoff & financed costs); capping-aware, never negative
   initialUPB: number;
   remainingCredit: number; // floored at 0 for display
   overDraw: number; // amount by which liens + draw + financed costs exceed the principal limit
