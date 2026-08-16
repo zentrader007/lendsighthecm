@@ -3,6 +3,7 @@ import type { SimulationInputs } from '../engine';
 import { defaultInputs } from '../engine/defaults';
 import { runSequenceAnalysis } from '../engine/sequence';
 import { runMortgageComparison } from '../engine/comparison';
+import { runAvailableSpending } from '../engine/spending';
 import { fetchLiveCMT } from '../lib/cmt';
 import { NumberField, SelectField, ToggleField } from '../components/Field';
 import { InfoTip } from '../components/InfoTip';
@@ -27,11 +28,15 @@ const SequenceChart = lazy(() =>
 const MortgageComparisonChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.MortgageComparisonChart })),
 );
+const AvailableSpendingChart = lazy(() =>
+  import('../components/Charts').then((m) => ({ default: m.AvailableSpendingChart })),
+);
 
-type StageView = 'loc' | 'networth' | 'equity' | 'invest' | 'seqrisk' | 'table';
+type StageView = 'loc' | 'spending' | 'networth' | 'equity' | 'invest' | 'seqrisk' | 'table';
 
 const STAGE_TABS: readonly { key: StageView; label: string }[] = [
   { key: 'loc', label: 'Credit line growth' },
+  { key: 'spending', label: 'Available spending' },
   { key: 'networth', label: 'Net worth' },
   { key: 'equity', label: 'Equity vs balance' },
   { key: 'invest', label: 'Invest comparison' },
@@ -55,6 +60,7 @@ export function RedesignAdvisor({
   const [stage, setStage] = useState<StageView>('loc');
   const [targetAge, setTargetAge] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showSpendingBalance, setShowSpendingBalance] = useState(true);
   const [live, setLive] = useState<{ status: 'idle' | 'loading' | 'ok' | 'error'; asOf?: string }>({
     status: 'idle',
   });
@@ -126,9 +132,13 @@ export function RedesignAdvisor({
   const seq = useMemo(() => runSequenceAnalysis(inp), [inp]);
   const seqLast = seq.rows[seq.rows.length - 1];
 
+  // Net-new spending the HECM creates: a lump sum at closing plus freed cash flow.
+  const spending = useMemo(() => runAvailableSpending(inp), [inp]);
+
   // Values at the marked age for the active chart, echoed beside the input.
   const tSeq = atTarget(seq.rows);
   const tCmp = atTarget(cmp.rows);
+  const tSpend = atTarget(spending.rows);
 
   // The per-tab footer insights anchor to the marked age when a target is set;
   // otherwise they keep their default horizons (age 85, age 90, the 20-year mark,
@@ -141,6 +151,8 @@ export function RedesignAdvisor({
     switch (s) {
       case 'loc':
         return <>{usd(tRow.availableLOC)} available credit · {usd(tRow.equity)} home equity</>;
+      case 'spending':
+        return tSpend ? <>{usd(tSpend.cumulative)} made available by age {tSpend.age}</> : null;
       case 'networth':
         return tCmp ? (
           <>{usd(tCmp.netWorthHecm)} net worth with HECM · {usd(tCmp.netWorthNoHecm)} {hasLien ? 'keeping the mortgage' : 'without a reverse mortgage'}</>
@@ -176,8 +188,23 @@ export function RedesignAdvisor({
     ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${freedDesc}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
     : `At age ${cmpRow.age}, net worth with the HECM is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio, including the ${usd(inp.initialCashDraw)} of proceeds invested at ${pct(inp.investmentReturn, 1)}), vs ${usd(cmpRow.netWorthNoHecm)} with no reverse mortgage (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio). The gap is the growing loan balance and closing costs, set against those proceeds compounding.`;
 
+  // "Available spending" reads off the pieces present: drop the lump-sum clause
+  // when nothing's left over, and the cash-flow clause when there's no lien.
+  const spendRow = tSpend ?? spending.rows[spending.rows.length - 1];
+  const lumpClause = spending.lumpSum > 0 ? `${usd(spending.lumpSum)} as a lump sum at closing` : '';
+  const freedClause =
+    spending.annualFreed > 0
+      ? `${usd(spending.monthlyFreed)}/mo of freed mortgage payment for ${spending.freedYears} yr${spending.freedYears === 1 ? '' : 's'}`
+      : '';
+  const bothClauses = [lumpClause, freedClause].filter(Boolean).join(' plus ');
+  const spendingInsight =
+    !bothClauses
+      ? `With no lien to pay off and no cash drawn, this scenario frees no new spending — the value sits in the growing credit line (see Credit line growth). Enter a cash draw or an existing mortgage to model new spending.`
+      : `This reverse mortgage makes ${usd(spending.firstYearTotal)} available in year one — ${bothClauses}. By age ${spendRow.age} that totals ${usd(spendRow.cumulative)} of new spending${spending.lumpSum > 0 ? `. The lump sum is loan proceeds, so the balance accrues interest; the freed payment is true cash flow, not borrowed` : ''}.`;
+
   const insights: Record<StageView, string> = {
     loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
+    spending: spendingInsight,
     networth: networthInsight,
     equity: `At age ${locEqRow.age} the home is projected at ${usd(locEqRow.homeValue)} with a ${usd(locEqRow.upb)} loan balance — leaving ${usd(locEqRow.equity)} in equity.`,
     invest: `Illustration only — not a recommendation to borrow in order to invest. By age ${investRow.age}, the cash drawn and invested grows to ${usd(investRow.investment)}; with remaining equity that's ${usd(investRow.investmentPlusEquity)}, vs ${usd(investRow.equity)} from equity alone. A lien payoff is excluded — it isn't cash you can invest.`,
@@ -354,6 +381,38 @@ export function RedesignAdvisor({
         ) : (
           <Suspense fallback={<div className="chart-loading">Loading chart…</div>}>
             {stage === 'loc' && <LocChart projection={result.projection} targetAge={markerAge} />}
+            {stage === 'spending' && (
+              <>
+                <div className="scenario-bar seq-controls">
+                  <NumberField label="Cash draw" value={inp.initialCashDraw} onChange={(v) => set('initialCashDraw', v)} suffix="$" min={0} tip="Cash taken at closing, on top of paying off liens and financed costs. This becomes the lump sum available to spend." />
+                  {hasLien && (
+                    <NumberField label="Mortgage pmt/mo" value={cmp.monthlyMortgagePayment} onChange={(v) => set('existingLienPayment', v)} suffix="$" min={0} maxDecimals={2} tip="Monthly principal & interest on the mortgage the HECM pays off — the payment freed up each month. Auto-calculated; type the client's actual payment to override, or 0 to recalculate." />
+                  )}
+                  <ToggleField label="Show loan balance?" value={showSpendingBalance} onChange={setShowSpendingBalance} tip="Overlay the growing HECM loan balance so the cost side of the lump sum is visible. The freed cash flow is not borrowed, so it has no cost line." />
+                </div>
+                <p className="freed-cashflow">
+                  <span className="freed-label">Available spending</span>
+                  <span className="freed-value">{usd(spending.lumpSum)} lump sum</span>
+                  <span className="freed-sep">·</span>
+                  <span className="freed-value">{usd(spending.monthlyFreed)}/mo freed{spending.freedYears > 0 ? ` for ${spending.freedYears} yr${spending.freedYears === 1 ? '' : 's'}` : ''}</span>
+                  <span className="freed-sep">·</span>
+                  <span className="freed-value">{usd(spending.firstYearTotal)} year 1</span>
+                  <span className="freed-note">
+                    {spending.outOfPocket > 0 && spending.grossCashAtClosing > 0
+                      ? `lump sum is ${usd(spending.grossCashAtClosing)} cash at closing − ${usd(spending.outOfPocket)} paid out of pocket. `
+                      : ''}
+                    HUD allows up to {usd(spending.hudMaxLumpSum)} at closing
+                    {spending.lumpSumHeadroom > 0 ? ` (${usd(spending.lumpSumHeadroom)} more available)` : ''}
+                  </span>
+                </p>
+                <AvailableSpendingChart rows={spending.rows} targetAge={markerAge} showBalance={showSpendingBalance} />
+                <p className="chart-caption">
+                  The lump sum is loan proceeds — spendable now, but the balance accrues interest (shown
+                  when the loan-balance line is on). The freed monthly payment is true cash flow, not
+                  borrowed, and runs until the old mortgage would have been paid off.
+                </p>
+              </>
+            )}
             {stage === 'networth' && (
               <>
                 <div className="scenario-bar seq-controls">

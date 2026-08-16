@@ -5,6 +5,7 @@ import {
   AreaChart,
   Area,
   ComposedChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,6 +17,7 @@ import {
 import type { ProjectionRow } from '../engine';
 import type { SequenceRow } from '../engine/sequence';
 import type { ComparisonRow } from '../engine/comparison';
+import type { SpendingRow } from '../engine/spending';
 import { usd } from '../format';
 
 const fmtK = (n: number) => `$${Math.round(n / 1000)}k`;
@@ -44,9 +46,12 @@ function atAge<T extends { age: number }>(data: T[], targetAge?: number): T | un
   return data.find((d) => d.age >= targetAge) ?? data[data.length - 1];
 }
 
-const markerLine = (age: number) => (
+// yAxisId is only needed on multi-axis charts (e.g. AvailableSpendingChart), so
+// the value maps to the right scale; single-axis charts omit it.
+const markerLine = (age: number, yAxisId?: string) => (
   <ReferenceLine
     x={age}
+    yAxisId={yAxisId}
     stroke="#1b2a4a"
     strokeDasharray="4 4"
     label={{ value: `Age ${age}`, position: 'top', fontSize: 12, fontWeight: 700, fill: '#1b2a4a', fontFamily: 'DM Mono, monospace' }}
@@ -56,10 +61,11 @@ const markerLine = (age: number) => (
 // The dot's value label is drawn just above-right of the dot with a white halo
 // (paint-order stroke) so it stays legible where it crosses a chart line.
 type DotViewBox = { cx?: number; cy?: number; x?: number; y?: number; width?: number; height?: number };
-const markerDot = (age: number, y: number, color: string) => (
+const markerDot = (age: number, y: number, color: string, yAxisId?: string) => (
   <ReferenceDot
     x={age}
     y={y}
+    yAxisId={yAxisId}
     r={4}
     fill={color}
     stroke="#fff"
@@ -253,6 +259,55 @@ export function SequenceChart({ rows, targetAge }: { rows: SequenceRow[]; target
               {markerLine(m.age)}
               {markerDot(m.age, m.portfolioBridge, '#5b9f5b')}
               {markerDot(m.age, m.portfolioSell, '#e07a5f')}
+            </>
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+export function AvailableSpendingChart({
+  rows,
+  targetAge,
+  consumer,
+  showBalance,
+}: {
+  rows: SpendingRow[];
+  targetAge?: number;
+  consumer?: boolean;
+  showBalance?: boolean;
+}) {
+  const data = rows.map((r) => ({
+    age: r.age,
+    lumpSum: r.lumpSum,
+    freedCashFlow: r.freedCashFlow,
+    cumulative: r.cumulative,
+    loanBalance: r.loanBalance,
+  }));
+  const m = atAge(data, targetAge);
+  return (
+    <ChartCard title={consumer ? 'The new spending this makes available' : 'Available Spending: Lump Sum + Freed Cash Flow'}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          {/* Left axis: the per-year amounts (bars). Right axis: the running total
+              and the loan balance, which dwarf the annual bars. */}
+          <YAxis yAxisId="left" tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <YAxis yAxisId="right" orientation="right" tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
+          <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
+          <Legend />
+          <Bar yAxisId="left" dataKey="lumpSum" name={consumer ? 'Cash at closing' : 'Lump sum (at closing)'} stackId="a" fill="#4a7c9b" />
+          <Bar yAxisId="left" dataKey="freedCashFlow" name={consumer ? 'Freed-up payment (per year)' : 'Freed cash flow (per year)'} stackId="a" fill="#5b9f5b" />
+          <Line yAxisId="right" type="monotone" dataKey="cumulative" name={consumer ? 'Total made available' : 'Cumulative available'} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
+          {showBalance && (
+            <Line yAxisId="right" type="monotone" dataKey="loanBalance" name={consumer ? 'What you owe (loan balance)' : 'Loan balance'} stroke="#e07a5f" dot={false} strokeWidth={2} strokeDasharray="6 4" />
+          )}
+          {m && (
+            <>
+              {markerLine(m.age, 'right')}
+              {markerDot(m.age, m.cumulative, '#1b2a4a', 'right')}
             </>
           )}
         </ComposedChart>

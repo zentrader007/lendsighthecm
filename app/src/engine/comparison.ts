@@ -80,10 +80,14 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   const lienRate = Math.max(0, inp.existingLienRate);
   const lienTerm = Math.min(Math.max(Math.floor(inp.existingLienTermRemaining) || 0, 0), 40);
   // Monthly P&I: the client's actual payment if entered, else auto-amortized.
+  // With no lien there is no mortgage, so no payment is freed — a stale payment
+  // override must not survive the lien being cleared.
   const monthlyPI =
-    inp.existingLienPayment > 0
-      ? inp.existingLienPayment
-      : monthlyMortgagePayment(lien, lienRate, lienTerm);
+    lien <= 0
+      ? 0
+      : inp.existingLienPayment > 0
+        ? inp.existingLienPayment
+        : monthlyMortgagePayment(lien, lienRate, lienTerm);
   const annualPI = 12 * monthlyPI;
   const spend = Math.max(0, inp.annualSpending);
   const r = inp.investmentReturn;
@@ -173,7 +177,9 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   }
 
   const age0 = inp.age;
-  const freedPaymentYears = payoffYear;
+  // No payment freed → no freed-payment years (the payoff loop would otherwise
+  // report 1, since a zero balance reads as "paid off" in year 1).
+  const freedPaymentYears = annualPI > 0 ? payoffYear : 0;
   return {
     rows,
     monthlyMortgagePayment: monthlyPI,

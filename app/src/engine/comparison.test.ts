@@ -151,6 +151,15 @@ describe('two-world net-worth comparison', () => {
     for (const row of res.rows) near(row.homeEquityNoHecm, row.homeValue, 0.01);
   });
 
+  it('no lien frees no payment even with a stale payment override', () => {
+    // Clearing the lien must zero the freed payment; a leftover override cannot
+    // conjure a monthly payment on a mortgage that no longer exists.
+    const res = runMortgageComparison({ ...base, existingLiens: 0, existingLienPayment: 1_500 });
+    expect(res.monthlyMortgagePayment).toBe(0);
+    expect(res.annualMortgagePayment).toBe(0);
+    expect(res.freedPaymentYears).toBe(0);
+  });
+
   it('the cash the HECM provides is credited to the portfolio as an invested asset', () => {
     // The cash the HECM hands over (the initial draw) is money in hand — it shows
     // up as a portfolio asset, net of out-of-pocket costs, not vanishing.

@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import type { SimulationInputs, SimulationResult } from '../engine';
 import { runMortgageComparison } from '../engine/comparison';
-import { LocChart, HomeEquityChart, MortgageComparisonChart } from './Charts';
+import { runAvailableSpending } from '../engine/spending';
+import { LocChart, HomeEquityChart, MortgageComparisonChart, AvailableSpendingChart } from './Charts';
 import { usd } from '../format';
 
-type ConsumerStage = 'loc' | 'networth' | 'equity';
+type ConsumerStage = 'loc' | 'spending' | 'networth' | 'equity';
 
 const CONSUMER_TABS: readonly { key: ConsumerStage; label: string }[] = [
   { key: 'loc', label: 'Credit line growth' },
+  { key: 'spending', label: 'New spending money' },
   { key: 'networth', label: 'Net worth' },
   { key: 'equity', label: 'Equity vs balance' },
 ];
@@ -34,8 +36,20 @@ export function ConsumerView({
   const cmp = useMemo(() => runMortgageComparison(inputs), [inputs]);
   const cmpLast = cmp.rows[cmp.rows.length - 1];
 
+  const spending = useMemo(() => runAvailableSpending(inputs), [inputs]);
+  const spendLast = spending.rows[spending.rows.length - 1];
+  const spendLump = spending.lumpSum > 0 ? `${usd(spending.lumpSum)} in cash right away` : '';
+  const spendFreed =
+    spending.annualFreed > 0
+      ? `${usd(spending.monthlyFreed)} a month you no longer pay on your mortgage (for ${spending.freedYears} year${spending.freedYears === 1 ? '' : 's'})`
+      : '';
+  const spendBoth = [spendLump, spendFreed].filter(Boolean).join(', plus ');
+
   const insights: Record<ConsumerStage, string> = {
     loc: `Your starting line of credit of ${usd(startLOC)} could grow to about ${usd(r85.availableLOC)} by age ${r85.age} — even if your home's value never changes.`,
+    spending: spendBoth
+      ? `This reverse mortgage gives you ${spendBoth}. That's ${usd(spending.firstYearTotal)} of new spending in the first year, and about ${usd(spendLast.cumulative)} over time. The cash is borrowed against your home, so the loan balance grows; the freed-up payment is money you simply stop spending.`
+      : `In this scenario the money stays in your growing line of credit rather than coming to you as new spending — see Credit line growth.`,
     networth: hasLien
       ? `By age ${cmpLast.age}, using the reverse mortgage to pay off your ${usd(inputs.existingLiens)} mortgage leaves a projected net worth of ${usd(cmpLast.netWorthHecm)}, versus ${usd(cmpLast.netWorthNoHecm)} if you keep your current mortgage — because the reverse mortgage removes your monthly payment.`
       : `With the reverse mortgage, your projected net worth at age ${cmpLast.age} is ${usd(cmpLast.netWorthHecm)} — your home equity after the loan balance, plus the ${usd(inputs.initialCashDraw)} you take at closing invested — versus ${usd(cmpLast.netWorthNoHecm)} if you take no reverse mortgage. The difference reflects the loan's growth and costs, set against those invested proceeds.`,
@@ -97,6 +111,9 @@ export function ConsumerView({
         </div>
 
         {stage === 'loc' && <LocChart projection={result.projection} consumer />}
+        {stage === 'spending' && (
+          <AvailableSpendingChart rows={spending.rows} consumer showBalance />
+        )}
         {stage === 'networth' && (
           <MortgageComparisonChart rows={cmp.rows} consumer noLien={!hasLien} />
         )}
