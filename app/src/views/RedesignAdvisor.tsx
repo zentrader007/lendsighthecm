@@ -117,6 +117,12 @@ export function RedesignAdvisor({
   // only when it's kept invested rather than spent.
   const buildSavingsActive = inp.freedPaymentInvested && !inp.freedCashConsumed;
 
+  // HUD amortizes the tenure payment to age 100, so at advanced ages the horizon
+  // shrinks and the monthly figure balloons (age 99 leaves 12 months). The number
+  // follows the formula, but "guaranteed for life" reads misleadingly next to it.
+  const tenureHorizonYears = Math.max(0, 100 - Math.floor(inp.age));
+  const shortTenureHorizon = result.maxTenurePayment != null && tenureHorizonYears <= 10;
+
   const seq = useMemo(() => runSequenceAnalysis(inp), [inp]);
   const seqLast = seq.rows[seq.rows.length - 1];
 
@@ -260,6 +266,17 @@ export function RedesignAdvisor({
         </div>
       )}
 
+      {shortTenureHorizon && (
+        <div className="warning-banner">
+          At age {Math.floor(inp.age)}, the tenure payment of{' '}
+          <strong>{usd(result.maxTenurePayment)}</strong>/mo is sized by HUD's formula, which
+          amortizes to age 100 — only about {tenureHorizonYears} year
+          {tenureHorizonYears === 1 ? '' : 's'} away. Payments do continue for as long as the
+          borrower lives in the home, so this is not an error, but read it as a formula output
+          rather than a realistic illustration, and confirm the tenure quote with the lender.
+        </div>
+      )}
+
       <section className="hero3">
         <HeroCard
           primary
@@ -277,8 +294,12 @@ export function RedesignAdvisor({
         <HeroCard
           label="Monthly for life"
           value={usd(result.maxTenurePayment)}
-          note="Max tenure payment, guaranteed for life"
-          tip="The largest fixed monthly payment available for life if you took the proceeds as a tenure payment instead of a lump sum or line of credit."
+          note={
+            shortTenureHorizon
+              ? `Formula amortizes to age 100 — only ~${tenureHorizonYears} yr${tenureHorizonYears === 1 ? '' : 's'} left; see note below`
+              : 'Max tenure payment, guaranteed for life'
+          }
+          tip="The largest fixed monthly payment available if you took the proceeds as a tenure payment instead of a lump sum or line of credit. HUD sizes it by amortizing to age 100, so the figure rises steeply at advanced ages even though payments continue for as long as you live in the home."
         />
       </section>
 
