@@ -137,6 +137,28 @@ describe('Guardrails', () => {
     near(cashOut.projection[0].investment, 50_000 - cashOut.pocCosts, 1);
   });
 
+  it('annual MIP tracks the actual balance and the MIP rate, not a fixed table', () => {
+    // MIP is 0.5% of the outstanding balance, so a bigger loan owes more MIP and
+    // a higher rate owes proportionally more. (It was previously read from a
+    // hard-coded dollar table frozen at one scenario, identical for every input.)
+    const small = runSimulation(defaultInputs);
+    const big = runSimulation({ ...defaultInputs, homeValue: 2_000_000, hecmLimit: 2_000_000 });
+    expect(big.projection[1].annualMIP).toBeGreaterThan(small.projection[1].annualMIP);
+
+    // Year 1 MIP ~= rate x the balance averaged over the year's monthly accrual.
+    const y0 = small.projection[0];
+    const y1 = small.projection[1];
+    const approx = defaultInputs.annualMIP * ((y0.upb + y1.upb) / 2);
+    expect(y1.annualMIP).toBeGreaterThan(approx * 0.97);
+    expect(y1.annualMIP).toBeLessThan(approx * 1.03);
+
+    // Quadrupling the MIP rate roughly quadruples the MIP charged in year 1.
+    const hi = runSimulation({ ...defaultInputs, annualMIP: 0.02 });
+    const ratio = hi.projection[1].annualMIP / small.projection[1].annualMIP;
+    expect(ratio).toBeGreaterThan(3.9);
+    expect(ratio).toBeLessThan(4.2);
+  });
+
   it('clamps projection years to the 38-year historical window', () => {
     const long = runSimulation({ ...defaultInputs, projectionYears: 80 });
     expect(long.projection.length).toBe(39);

@@ -73,7 +73,6 @@ export function RedesignAdvisor({
         cmt10yr: data.cmt10yr,
         cmt1yr: data.cmt1yr,
         futureCMT10yr: data.cmt10yr,
-        ...(data.mortgage30 ? { existingLienRate: data.mortgage30 } : {}),
       }));
       setLive({ status: 'ok', asOf: data.asOf });
     } catch {
@@ -318,7 +317,7 @@ export function RedesignAdvisor({
                 <div className="scenario-bar seq-controls">
                   {hasLien && (
                     <>
-                      <NumberField label="Mortgage rate" value={inp.existingLienRate} onChange={(v) => set('existingLienRate', v)} asPercent min={0} max={20} tip="Interest rate on the existing mortgage the HECM paid off. Auto-filled from the live 30yr rate; edit to the client's actual rate." />
+                      <NumberField label="Mortgage rate" value={inp.existingLienRate} onChange={(v) => set('existingLienRate', v)} asPercent min={0} max={20} tip="Interest rate on the existing mortgage the HECM paid off — enter the client's actual rate. Used to amortize the residual balance in the no-HECM world." />
                       <NumberField label="Yrs left" value={inp.existingLienTermRemaining} onChange={(v) => set('existingLienTermRemaining', v)} min={0} max={40} tip="Years left on that mortgage at closing — used to amortize the residual balance in the no-HECM world." />
                       <NumberField label="Mortgage pmt/mo" value={cmp.monthlyMortgagePayment} onChange={(v) => set('existingLienPayment', v)} suffix="$" min={0} maxDecimals={2} tip="Monthly principal & interest on the mortgage the HECM pays off. Auto-calculated from the balance, rate, and years left; type the client's actual payment to override, or set to 0 to recalculate. This drives the freed cash flow and the no-HECM amortization." />
                     </>
@@ -432,8 +431,8 @@ export function RedesignAdvisor({
               {live.status === 'loading' ? '…' : 'Refresh'}
             </button>
           </div>
-          <NumberField label="10yr CMT (Expected idx)" value={inp.cmt10yr} onChange={(v) => set('cmt10yr', v)} asPercent min={0} max={20} tip="The 10-year Constant Maturity Treasury rate — the index for the expected rate and PLF. Auto-filled live from FRED on load; you can still type over it." />
-          <NumberField label="1yr CMT (Initial idx)" value={inp.cmt1yr} onChange={(v) => set('cmt1yr', v)} asPercent min={0} max={20} tip="The 1-year Constant Maturity Treasury rate — the index for the year-one interest rate. Auto-filled live from FRED on load; you can still type over it." />
+          <NumberField label="10yr CMT (Expected idx)" value={inp.cmt10yr} onChange={(v) => set('cmt10yr', v)} asPercent min={0} max={20} tip="The 10-year Constant Maturity Treasury rate — the index for the expected rate and PLF. Auto-filled live from the U.S. Treasury daily yield curve on load; you can still type over it." />
+          <NumberField label="1yr CMT (Initial idx)" value={inp.cmt1yr} onChange={(v) => set('cmt1yr', v)} asPercent min={0} max={20} tip="The 1-year Constant Maturity Treasury rate — the index for the year-one interest rate. Auto-filled live from the U.S. Treasury daily yield curve on load; you can still type over it." />
           <NumberField label="Margin" value={inp.margin} onChange={(v) => set('margin', v)} asPercent min={0} max={10} tip="The lender's margin, added to the index to determine the interest rate." />
           <NumberField label="Annual MIP" value={inp.annualMIP} onChange={(v) => set('annualMIP', v)} asPercent min={0} max={5} tip="The ongoing FHA Mortgage Insurance Premium rate charged each year on the loan balance (currently 0.5%)." />
           <SelectField label="Rate Scenario" value={inp.rateScenario} options={RATE_SCENARIOS} onChange={(v) => set('rateScenario', v)} tip="Stress-test how the balance, credit line, and total principal limit grow: flat at the projected rate, shocked up or down 2%, or replaying actual 1-year CMT rates from 1986 forward." />
@@ -441,7 +440,7 @@ export function RedesignAdvisor({
 
         <Section title="Investment Comparison">
           <NumberField label="Assumed Inv. Return" value={inp.investmentReturn} onChange={(v) => set('investmentReturn', v)} asPercent min={-20} max={30} tip="Annual return assumed for the 'invest the proceeds' comparison and the opportunity cost of out-of-pocket costs." />
-          <NumberField label="Tax on Sold Assets" value={inp.taxRateOnSoldAssets} onChange={(v) => set('taxRateOnSoldAssets', v)} asPercent min={0} max={95} tip="The tax rate applied when liquidating invested assets, used in the after-tax comparison. Default is the 15% long-term capital gains rate." />
+          <NumberField label="Tax on Sold Assets" value={inp.taxRateOnSoldAssets} onChange={(v) => set('taxRateOnSoldAssets', v)} asPercent min={0} max={95} tip="The tax rate applied to the invested position in the Invest comparison — a higher rate reduces it, since those assets must be liquidated to be spent. Home equity is common to both lines, so it cancels out. Defaults to 0%; enter the client's capital-gains rate." />
         </Section>
 
         <Section title="Limits & Future PLF">

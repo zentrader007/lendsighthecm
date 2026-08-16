@@ -1,6 +1,5 @@
 import { FV, PMT, MROUND } from './finance';
 import { lookupPLF, lookupPLFByRate } from './plf';
-import { lookupAnnualMIP } from './mip';
 import { deriveCosts } from './costs';
 import { hist1yrCMTForward, hist10yrCMT } from './historical';
 import type { ProjectionRow, SimulationInputs, SimulationResult } from './types';
@@ -160,7 +159,18 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     const upb = FV(accrualRate / 12, 12, 0, -(prev.upb + draw - payment));
     const availableLOC = FV(accrualRate / 12, 12, 0, -(prev.availableLOC - draw + payment));
 
-    const annualMip = lookupAnnualMIP(n);
+    // MIP accrued this year, computed from the actual balance: the loan grows
+    // monthly at accrualRate (which already includes the MIP rate), and MIP is
+    // the annMip/12 slice charged on each month's opening balance. Derived
+    // rather than looked up, so it tracks home value, draws, payments, and the
+    // Annual MIP input. (It previously came from a fixed dollar table frozen at
+    // one scenario, which left the MIP/interest split wrong for every other.)
+    let mipBalance = Math.max(0, prev.upb + draw - payment);
+    let annualMip = 0;
+    for (let m = 0; m < 12; m++) {
+      annualMip += mipBalance * (annMip / 12);
+      mipBalance *= 1 + accrualRate / 12;
+    }
     // MIP subtracted by payment, capped at prior accumulated MIP (negative).
     const S = -(payment <= prev.accumMIP ? payment : prev.accumMIP);
     // Principal subtracted once payment exceeds interest + accumulated MIP.

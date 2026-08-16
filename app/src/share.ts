@@ -34,6 +34,14 @@ const numOr = (v: unknown, fallback: number): number => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+// The two string enums need whitelisting too — otherwise a stale or hand-crafted
+// link could carry an unknown value straight into the <select>, showing a bogus
+// option even though the engine would silently fall back.
+const RATE_SCENARIOS = ['Flat (assumed)', 'Rates +2%', 'Rates -2%', 'Replay 1986-2024'] as const;
+const RATE_MODES = ['Assumed', 'Historical'] as const;
+const oneOf = <T extends string>(opts: readonly T[], v: unknown, fallback: T): T =>
+  opts.includes(v as T) ? (v as T) : fallback;
+
 /** Coerce every numeric field to a finite number and the schedules to 38-length
  *  numeric arrays, falling back to defaults — so a malformed `?d=` payload
  *  degrades gracefully instead of poisoning the projection with NaN/strings. */
@@ -76,6 +84,8 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
     existingLienPayment: numOr(inp.existingLienPayment, defaultInputs.existingLienPayment),
     freedCashConsumed: Boolean(inp.freedCashConsumed),
     freedPaymentInvested: Boolean(inp.freedPaymentInvested),
+    rateScenario: oneOf(RATE_SCENARIOS, inp.rateScenario, defaultInputs.rateScenario),
+    futureCMTMode: oneOf(RATE_MODES, inp.futureCMTMode, defaultInputs.futureCMTMode),
     beginningYear: numOr(inp.beginningYear, defaultInputs.beginningYear),
     projectionYears: numOr(inp.projectionYears, defaultInputs.projectionYears),
     costsInLoan: Boolean(inp.costsInLoan),
