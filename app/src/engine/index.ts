@@ -25,8 +25,8 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   } = inp;
 
   // Defensive clamps so a malformed input or stale shared link can't produce
-  // Infinity/NaN. taxRate feeds a 1/(1-tax) divisor; projectionYears indexes the
-  // historical series (which cover 38 years).
+  // Infinity/NaN. taxRate scales invested proceeds by (1 - tax); projectionYears
+  // indexes the historical series (which cover 38 years).
   const taxRate = Math.min(Math.max(inp.taxRateOnSoldAssets, 0), 0.95);
   const N = Math.min(Math.max(Math.floor(inp.projectionYears) || 0, 1), 38);
 
@@ -121,8 +121,10 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     cmt10yr: cmt10_0,
     // Invest only the cash the borrower nets at closing (netCashDrawn), less any
     // out-of-pocket costs — never a lien payoff, which discharges a debt rather
-    // than handing over investable cash.
-    investment: Math.max(0, netCashDrawn - pocCosts) / (1 - taxRate),
+    // than handing over investable cash. Then apply the sold-assets tax so the
+    // after-tax invested value is compared like-for-like against home equity: a
+    // higher tax rate SHRINKS the invested position (it must never inflate it).
+    investment: Math.max(0, netCashDrawn - pocCosts) * (1 - taxRate),
     investmentPlusEquity: 0,
     pocDrag: pocCosts,
     rmNetWorth: 0,
@@ -189,10 +191,12 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     const futurePL = futurePLF * effHome;
 
     const invReturn = inp.investmentReturn;
+    // Later-year cash draws are invested after tax too (same haircut as year 0);
+    // payments are after-tax dollars withdrawn to service the loan.
     const investment = -FV(
       invReturn / 12,
       12,
-      (draw / (1 - taxRate)) / 12 - payment / 12,
+      (draw * (1 - taxRate)) / 12 - payment / 12,
       prev.investment,
     );
 

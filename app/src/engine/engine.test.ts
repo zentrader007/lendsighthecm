@@ -107,6 +107,19 @@ describe('Guardrails', () => {
     expect(Number.isFinite(taxed.projection[1].investment)).toBe(true);
   });
 
+  it('a higher sold-assets tax rate shrinks the invested proceeds, never inflates them', () => {
+    // The tax must reduce the after-tax invested value (a fair haircut), not gross
+    // it up — otherwise a higher tax rate would perversely make investing the
+    // proceeds look better.
+    const untaxed = runSimulation({ ...defaultInputs, taxRateOnSoldAssets: 0 });
+    const taxed = runSimulation({ ...defaultInputs, taxRateOnSoldAssets: 0.25 });
+    expect(taxed.projection[0].investment).toBeLessThan(untaxed.projection[0].investment);
+    expect(taxed.projection[10].investment).toBeLessThan(untaxed.projection[10].investment);
+    // Exactly a 25% haircut on the invested position (equity, common to both
+    // comparison lines, is left untaxed and cancels out).
+    near(taxed.projection[0].investment, untaxed.projection[0].investment * 0.75, 1);
+  });
+
   it('year-0 investment is the cash drawn, not a lien payoff', () => {
     // A lien is paid off with proceeds, not handed to the borrower as cash — so
     // paying off a $230k lien with a $0 cash draw must show ~$0 investable, never

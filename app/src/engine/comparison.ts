@@ -107,6 +107,19 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   // cash is invested rather than consumed.
   const buildSavings = inp.freedPaymentInvested && !inp.freedCashConsumed;
 
+  // The mortgage is actually retired the first year its amortizing balance hits
+  // zero — lienTerm with the scheduled payment, but sooner if the client's
+  // (overridden) payment is larger. Tie the freed payment to this real payoff so
+  // an override can't keep charging P&I after the loan is already gone.
+  const maxPayYear = Math.min(lienTerm, N);
+  let payoffYear = maxPayYear;
+  for (let t = 1; t <= maxPayYear; t++) {
+    if (residualMortgage(lien, lienRate, lienTerm, t, monthlyPI) <= 0) {
+      payoffYear = t;
+      break;
+    }
+  }
+
   let pNoHecm = inp.portfolioValue;
   let pHecm = inp.portfolioValue - oop + hecmProceeds;
   let freedInvested = 0;
@@ -119,10 +132,10 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
     const resid = residualMortgage(lien, lienRate, lienTerm, t, monthlyPI);
 
     if (t > 0) {
-      const piThisYear = t <= lienTerm ? annualPI : 0;
-      // No-HECM: living spending + mortgage P&I (while the lien runs) — unless
-      // build-savings mode funds that P&I from income, leaving the portfolio
-      // untouched by it.
+      const piThisYear = t <= payoffYear ? annualPI : 0;
+      // No-HECM: living spending + mortgage P&I (until the loan is paid off) —
+      // unless build-savings mode funds that P&I from income, leaving the
+      // portfolio untouched by it.
       const drawNoHecm = spend + (buildSavings ? 0 : piThisYear);
       if (pNoHecm > 0 && pNoHecm < drawNoHecm && noHecmDepletionYear === null)
         noHecmDepletionYear = t;
@@ -160,7 +173,7 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   }
 
   const age0 = inp.age;
-  const freedPaymentYears = Math.min(lienTerm, N);
+  const freedPaymentYears = payoffYear;
   return {
     rows,
     monthlyMortgagePayment: monthlyPI,

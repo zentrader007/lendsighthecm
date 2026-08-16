@@ -124,6 +124,27 @@ describe('two-world net-worth comparison', () => {
     expect(b.freedInvestedValue).toBe(0);
   });
 
+  it('an overpaid mortgage stops the freed payment at the real payoff, not the full term', () => {
+    // Same $150k balance and 25-yr term, but the client pays ~double the scheduled
+    // P&I, retiring the loan far sooner. The freed-payment window must shrink to
+    // the actual payoff rather than running the full term.
+    const scheduled = runMortgageComparison(base); // auto-amortized over 25 yrs
+    const fast = runMortgageComparison({
+      ...base,
+      existingLienPayment: 2 * scheduled.monthlyMortgagePayment,
+    });
+    expect(fast.freedPaymentYears).toBeLessThan(scheduled.freedPaymentYears);
+    // The no-HECM balance actually reaches zero that year (equity restored early).
+    const payoff = fast.rows.find((row) => row.year > 0 && row.residualMortgage === 0);
+    expect(payoff).toBeDefined();
+    expect(payoff!.year).toBe(fast.freedPaymentYears);
+    // Freed cash-flow total reflects the shorter window, not a full 25 years.
+    expect(fast.cumulativeFreedPayment).toBeCloseTo(
+      fast.annualMortgagePayment * fast.freedPaymentYears,
+      6,
+    );
+  });
+
   it('no existing lien → no mortgage payment and full-home-value baseline', () => {
     const res = runMortgageComparison({ ...base, existingLiens: 0 });
     expect(res.annualMortgagePayment).toBe(0);
