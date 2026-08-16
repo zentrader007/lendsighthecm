@@ -151,6 +151,12 @@ export interface SimulationResult {
   initialUPB: number;
   remainingCredit: number; // floored at 0 for display
   overDraw: number; // amount by which liens + draw + financed costs exceed the principal limit
+  /** Cash draw at closing beyond HUD's first-year disbursement limit (the 60% rule). */
+  firstYearDrawExcess: number;
+  /** Total scheduled draws that exceeded the credit available that year (capped, not borrowed). */
+  drawsBeyondCredit: number;
+  /** First projection year whose scheduled draw had to be capped, or null. */
+  firstCappedDrawYear: number | null;
   maxTenurePayment: number | null;
   h4pDownPaymentMin: number;
   pocCosts: number;

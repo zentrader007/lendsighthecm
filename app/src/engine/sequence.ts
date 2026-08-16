@@ -50,21 +50,15 @@ export function runSequenceAnalysis(inp: SimulationInputs): SequenceResult {
 
   const marketReturn = (y: number) => (y <= R ? inp.recoveryReturn : inp.investmentReturn);
 
-  // Bridge schedule: spending from the LOC during the recovery years, capped
-  // so the LOC never goes negative (re-run after trimming any over-draw).
+  // Bridge schedule: request spending from the LOC during the recovery years.
+  // The engine caps each draw at the credit actually available that year, so we
+  // read the ACTUAL draws back out of the projection — requesting more than the
+  // line holds must fall back to the portfolio, not materialize from thin air.
   const draws = Array(38).fill(0);
   for (let i = 0; i < R; i++) draws[i] = spend;
-  let hecm = runSimulation({ ...inp, draws, payments: Array(38).fill(0) });
-  for (let pass = 0; pass < 8; pass++) {
-    const firstNeg = hecm.projection.findIndex((r) => r.availableLOC < 0);
-    if (firstNeg === -1) break;
-    const over = -hecm.projection[firstNeg].availableLOC;
-    // De-accrue one year of growth, leave a small buffer, never below zero.
-    const accrual = hecm.projection[firstNeg].accrualRate ?? hecm.loanProjectedRate;
-    draws[firstNeg - 1] = Math.max(0, Math.floor(draws[firstNeg - 1] - over / (1 + accrual) - 1));
-    hecm = runSimulation({ ...inp, draws, payments: Array(38).fill(0) });
-  }
-  const totalBridgeDraws = draws.reduce((a, b) => a + b, 0);
+  const hecm = runSimulation({ ...inp, draws, payments: Array(38).fill(0) });
+  const drawnInYear = (y: number) => hecm.projection[y]?.draw ?? 0;
+  const totalBridgeDraws = hecm.projection.reduce((a, row) => a + (row.draw ?? 0), 0);
 
   // Portfolio paths. Closing costs come out of the portfolio (pre-crash) when
   // paid out of pocket; when financed they sit in the loan balance instead.
@@ -85,7 +79,7 @@ export function runSequenceAnalysis(inp: SimulationInputs): SequenceResult {
     unfundedSell += spend - wSell;
     pSell = (pSell - wSell) * (1 + r);
 
-    const bridgeDraw = draws[y - 1] ?? 0;
+    const bridgeDraw = drawnInYear(y);
     const needBridge = Math.max(0, spend - bridgeDraw);
     if (pBridge > 0 && needBridge > 0 && pBridge <= needBridge && bridgeDepletionYear === null)
       bridgeDepletionYear = y;
@@ -94,8 +88,8 @@ export function runSequenceAnalysis(inp: SimulationInputs): SequenceResult {
     pBridge = (pBridge - wBridge) * (1 + r);
 
     const row = hecm.projection[y];
-    // The trim loop above keeps draws within the LOC, but clamp defensively so
-    // an unconverged extreme input can never surface a negative credit line.
+    // The engine caps draws at the available credit, so this can't go negative;
+    // kept as a cheap guard against an extreme input surfacing a negative line.
     const hecmLOC = Math.max(0, row.availableLOC);
     rows.push({
       year: y,

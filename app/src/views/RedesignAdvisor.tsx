@@ -239,6 +239,27 @@ export function RedesignAdvisor({
         </div>
       )}
 
+      {/* HUD's first-year rule binds even when the loan fits the principal limit,
+          so this is a separate check — but it's moot once the loan is over-drawn. */}
+      {result.overDraw === 0 && result.firstYearDrawExcess > 0 && (
+        <div className="warning-banner">
+          This cash draw is <strong>{usd(result.firstYearDrawExcess)}</strong> above HUD's
+          first-year disbursement limit of <strong>{usd(result.availableInitialDraw)}</strong> (the
+          60% rule). The projection still models it, but a lender could not disburse this much at
+          closing — take the excess after month 12, or reduce the cash draw.
+        </div>
+      )}
+
+      {result.drawsBeyondCredit > 0 && (
+        <div className="warning-banner">
+          Scheduled draws exceed the available credit line by{' '}
+          <strong>{usd(result.drawsBeyondCredit)}</strong>
+          {result.firstCappedDrawYear != null && <> starting in year {result.firstCappedDrawYear}</>}
+          . Those draws have been capped at the credit available each year — you cannot borrow more
+          than the line holds. Lower the draws in the Year table.
+        </div>
+      )}
+
       <section className="hero3">
         <HeroCard
           primary

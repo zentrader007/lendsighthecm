@@ -84,6 +84,11 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
 
   const h4pDownPaymentMin = homeValue - principalLimit + financedCosts;
 
+  // HUD caps year-one disbursements (the 60% rule), which availableInitialDraw
+  // already computes. Report any cash draw beyond it so an illustration can't
+  // quietly show a first-year disbursement HUD would not permit.
+  const firstYearDrawExcess = Math.max(0, initialCashDraw - availableInitialDraw);
+
   // --- Projection ---
   const projection: ProjectionRow[] = [];
 
@@ -134,11 +139,25 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   row0.accessibleResources = row0.equity + row0.availableLOC;
   projection.push(row0);
 
+  // Scheduled draws are user-editable, so they get the same protection the
+  // initial draw has: you can never borrow more than the credit line holds.
+  let drawsBeyondCredit = 0;
+  let firstCappedDrawYear: number | null = null;
+
   for (let n = 1; n <= N; n++) {
     const prev = projection[n - 1];
     const curAge = age + n;
-    const draw = inp.draws[n - 1] ?? 0;
     const payment = inp.payments[n - 1] ?? 0;
+    // Draws are beginning-of-year, so the ceiling is last year's closing credit
+    // line plus any payment made this year (a payment restores credit first).
+    // Without this cap a typed draw could push the balance past the principal
+    // limit and drive the credit line negative — an impossible loan.
+    const requestedDraw = inp.draws[n - 1] ?? 0;
+    const draw = Math.min(requestedDraw, Math.max(0, prev.availableLOC + payment));
+    if (requestedDraw > draw) {
+      drawsBeyondCredit += requestedDraw - draw;
+      if (firstCappedDrawYear === null) firstCappedDrawYear = n;
+    }
 
     const appreciation = inp.appreciation;
 
@@ -157,7 +176,9 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
             : growthRate;
 
     const upb = FV(accrualRate / 12, 12, 0, -(prev.upb + draw - payment));
-    const availableLOC = FV(accrualRate / 12, 12, 0, -(prev.availableLOC - draw + payment));
+    // Floored at 0: the draw cap above already prevents a real overdraw, but a
+    // fully-drawn line leaves floating-point residue that would render as "-$0".
+    const availableLOC = Math.max(0, FV(accrualRate / 12, 12, 0, -(prev.availableLOC - draw + payment)));
 
     // MIP accrued this year, computed from the actual balance: the loan grows
     // monthly at accrualRate (which already includes the MIP rate), and MIP is
@@ -269,6 +290,9 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     initialUPB,
     remainingCredit,
     overDraw,
+    firstYearDrawExcess,
+    drawsBeyondCredit,
+    firstCappedDrawYear,
     maxTenurePayment,
     h4pDownPaymentMin,
     pocCosts,

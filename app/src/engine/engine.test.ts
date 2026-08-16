@@ -102,6 +102,55 @@ describe('Guardrails', () => {
     expect(r.remainingCredit).toBeGreaterThan(0);
   });
 
+  it('caps scheduled draws at the available credit line and reports the excess', () => {
+    // The Draws column is user-editable, so a typed draw must get the same
+    // protection the initial draw has — you cannot borrow more than the line
+    // holds. Previously this drove the credit line negative and pushed the
+    // balance past the principal limit with no flag.
+    const huge = runSimulation({
+      ...defaultInputs,
+      draws: defaultInputs.draws.map((_, i) => (i === 0 ? 500_000 : 0)),
+    });
+    expect(huge.drawsBeyondCredit).toBeGreaterThan(0);
+    expect(huge.firstCappedDrawYear).toBe(1);
+    const y1 = huge.projection[1];
+    expect(y1.availableLOC).toBeGreaterThanOrEqual(-0.01); // never negative
+    expect(y1.upb).toBeLessThanOrEqual(y1.totalPL + 0.01); // never beyond the principal limit
+    // The HECM identity still holds after capping.
+    near(y1.availableLOC + y1.upb, y1.totalPL, 0.01);
+
+    // A draw inside the line is untouched and reports nothing.
+    const ok = runSimulation({
+      ...defaultInputs,
+      draws: defaultInputs.draws.map((_, i) => (i === 0 ? 5_000 : 0)),
+    });
+    expect(ok.drawsBeyondCredit).toBe(0);
+    expect(ok.firstCappedDrawYear).toBeNull();
+    expect(ok.projection[1].draw).toBe(5_000);
+  });
+
+  it("flags a cash draw above HUD's first-year disbursement limit", () => {
+    // The 60% rule binds even when the loan fits inside the principal limit.
+    const over = runSimulation({
+      ...defaultInputs,
+      homeValue: 1_250_000,
+      existingLiens: 230_000,
+      initialCashDraw: 50_000,
+    });
+    expect(over.overDraw).toBe(0); // fits the principal limit...
+    expect(over.firstYearDrawExcess).toBeGreaterThan(0); // ...but breaks the first-year rule
+    near(over.firstYearDrawExcess, 50_000 - over.availableInitialDraw, 0.01);
+
+    // Drawing within the first-year limit reports nothing.
+    const within = runSimulation({
+      ...defaultInputs,
+      homeValue: 1_250_000,
+      existingLiens: 230_000,
+      initialCashDraw: Math.floor(over.availableInitialDraw),
+    });
+    expect(within.firstYearDrawExcess).toBe(0);
+  });
+
   it('clamps a 100% tax rate so investment figures stay finite', () => {
     const taxed = runSimulation({ ...defaultInputs, taxRateOnSoldAssets: 1 });
     expect(Number.isFinite(taxed.projection[1].investment)).toBe(true);
