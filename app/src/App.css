@@ -581,7 +581,7 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
 .scenario-bar .field-input:focus-within { box-shadow: none; }
 .scenario-bar .field-input input[type='text'] { width: 76px; }
 /* Chart canvas height scales with the window (~50% taller than the old 260px). */
-.chart-body { height: clamp(320px, 45vh, 540px); }
+.chart-body { position: relative; height: clamp(320px, 45vh, 540px); }
 
 .live-rates {
   display: flex;
@@ -618,22 +618,28 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
   text-align: center;
 }
 
-/* Compliance caveat under the Invest comparison — must read as a warning, not a
-   footnote, so it stands apart from the italic gray chart captions. */
-.chart-caveat {
-  margin: 10px auto 0;
-  max-width: 640px;
-  padding: 8px 12px;
-  font-size: 12px;
-  line-height: 1.45;
+/* Compliance caveat overlaid inside the Invest comparison chart (top-left of the
+   plotting area) so it's impossible to miss. Semi-transparent so gridlines show
+   through; pointer-events off so it never blocks the chart's hover tooltip. */
+.chart-caveat-overlay {
+  position: absolute;
+  top: 8px;
+  left: 68px;
+  z-index: 2;
+  max-width: 260px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
   color: #7a4b16;
-  background: #fdf6ec;
-  border: 1px solid #f0d9b5;
-  border-radius: 8px;
-  text-align: center;
+  background: rgba(253, 246, 236, 0.94);
+  border: 1px solid #e6c893;
+  border-left: 3px solid #d4854a;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  pointer-events: none;
 }
 
-.chart-caveat strong {
+.chart-caveat-overlay strong {
   color: #8a3d12;
 }
 

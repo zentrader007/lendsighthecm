@@ -375,17 +375,7 @@ export function RedesignAdvisor({
               </>
             )}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} targetAge={markerAge} />}
-            {stage === 'invest' && (
-              <>
-                <InvestChart projection={result.projection} targetAge={markerAge} />
-                <p className="chart-caveat">
-                  <strong>For illustration purposes only.</strong> In most cases, you should not
-                  remove equity from a house to invest. This models only the cash actually drawn at
-                  closing (a lien payoff is not investable cash), compounded at the assumed after-tax
-                  return — it is not a recommendation to borrow in order to invest.
-                </p>
-              </>
-            )}
+            {stage === 'invest' && <InvestChart projection={result.projection} targetAge={markerAge} />}
             {stage === 'seqrisk' && (
               <>
                 <div className="scenario-bar seq-controls">

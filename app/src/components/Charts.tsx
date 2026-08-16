@@ -149,6 +149,10 @@ export function InvestChart({ projection, targetAge }: { projection: ProjectionR
   const m = atAge(data, targetAge);
   return (
     <ChartCard title="Equity Only vs. Invest the Cash Drawn (after tax)">
+      <div className="chart-caveat-overlay">
+        <strong>Illustration only.</strong> In most cases you should not remove home equity to
+        invest — not a recommendation to borrow in order to invest.
+      </div>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
