@@ -38,6 +38,10 @@ export function ConsumerView({
 
   const spending = useMemo(() => runAvailableSpending(inputs), [inputs]);
   const spendLast = spending.rows[spending.rows.length - 1];
+  // The honesty ledger anchors to a realistic horizon (~age 85), not the
+  // projection's tail, where the compounded loan floors equity to $0 and
+  // overstates the cost.
+  const spendRef = spending.rows.find((r) => r.age >= 85) ?? spendLast;
   const spendLump = spending.lumpSum > 0 ? `${usd(spending.lumpSum)} in cash right away` : '';
   const spendFreed =
     spending.annualFreed > 0
@@ -125,7 +129,34 @@ export function ConsumerView({
 
         {stage === 'loc' && <LocChart projection={result.projection} consumer />}
         {stage === 'spending' && (
-          <AvailableSpendingChart rows={spending.rows} consumer showBalance />
+          <>
+            <AvailableSpendingChart rows={spending.rows} consumer showBalance />
+            {spending.totalAvailable > 0 && (
+              <div className="cost-ledger">
+                <div className="ledger-col ledger-receive">
+                  <span className="ledger-head">What you get</span>
+                  <span className="ledger-big">{usd(spendRef.cumulative)}</span>
+                  <span className="ledger-sub">
+                    of new spending by age {spendRef.age} — {usd(spending.lumpSum)} in cash
+                    {spending.annualFreed > 0
+                      ? ` plus about ${usd(spending.monthlyFreed)} a month you stop paying on your mortgage`
+                      : ''}
+                    .
+                  </span>
+                </div>
+                <div className="ledger-col ledger-cost">
+                  <span className="ledger-head">What it costs</span>
+                  <span className="ledger-big">{usd(Math.min(spendRef.loanBalance, spendRef.homeValue))}</span>
+                  <span className="ledger-sub">
+                    the most you'd repay by age {spendRef.age} — leaving {usd(spendRef.equityWith)} of home
+                    equity for you or your heirs, vs {usd(spendRef.equityWithout)} if you did nothing.
+                    It's FHA-insured: when the home is sold, you or your heirs never owe more than it
+                    sells for — the insurance covers any shortfall.
+                  </span>
+                </div>
+              </div>
+            )}
+          </>
         )}
         {stage === 'networth' && (
           <MortgageComparisonChart rows={cmp.rows} consumer noLien={!hasLien} breakEvenAge={cmp.breakEvenAge ?? undefined} noHecmDepletionAge={cmp.noHecmDepletionAge ?? undefined} hecmDepletionAge={cmp.hecmDepletionAge ?? undefined} />

@@ -25,6 +25,13 @@ export interface SpendingRow {
   total: number; // lumpSum + freedCashFlow for the year
   cumulative: number; // running total of `total`
   loanBalance: number; // the HECM balance (upb) — the cost side of the lump sum
+  homeValue: number; // appreciated home value this year — the non-recourse cap on what's owed
+  // The cost side, for an honest benefit-vs-cost ledger: home equity remaining
+  // with the HECM (home value − balance) vs. equity if the client did nothing
+  // (home value − any residual on the current mortgage). The gap is the equity
+  // the HECM has consumed by this age.
+  equityWith: number;
+  equityWithout: number;
 }
 
 export interface SpendingResult {
@@ -82,6 +89,9 @@ export function runAvailableSpending(inp: SimulationInputs): SpendingResult {
       total,
       cumulative,
       loanBalance: row.upb,
+      homeValue: row.homeValue,
+      equityWith: row.equity,
+      equityWithout: cmp.rows[t].homeEquityNoHecm,
     });
   }
 

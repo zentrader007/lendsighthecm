@@ -42,6 +42,31 @@ describe('available spending', () => {
     expect(s.rows[0].lumpSum).toBe(0);
   });
 
+  it('exposes the cost side: equity with the HECM trails equity from doing nothing', () => {
+    const inp = { ...base, initialCashDraw: 10_000 };
+    const s = runAvailableSpending(inp);
+    const r = runSimulation(inp);
+    const last = s.rows[s.rows.length - 1];
+    // Equity with the HECM matches the loan sim's equity, and is below the
+    // do-nothing equity — the gap is the equity the loan consumed.
+    near(last.equityWith, r.projection[r.projection.length - 1].equity, 1);
+    expect(last.equityWith).toBeLessThan(last.equityWithout);
+    // Loan balance is the cost line behind the lump sum.
+    expect(last.loanBalance).toBeGreaterThan(0);
+    // Equity is home value net of the balance, floored at 0 (non-recourse), so
+    // the amount actually owed can never exceed the home value.
+    near(last.equityWith, Math.max(0, last.homeValue - last.loanBalance), 1);
+    expect(Math.min(last.loanBalance, last.homeValue)).toBeLessThanOrEqual(last.homeValue);
+  });
+
+  it('with no lien, doing-nothing equity is the full (appreciated) home value', () => {
+    const inp = { ...base, existingLiens: 0, initialCashDraw: 40_000 };
+    const s = runAvailableSpending(inp);
+    const r = runSimulation(inp);
+    // No mortgage in the do-nothing world, so its equity is the whole home.
+    for (const row of s.rows) near(row.equityWithout, r.projection[row.year].homeValue, 1);
+  });
+
   it('no lien → lump sum only, no freed cash flow', () => {
     const s = runAvailableSpending({ ...base, existingLiens: 0, initialCashDraw: 40_000 });
     expect(s.annualFreed).toBe(0);

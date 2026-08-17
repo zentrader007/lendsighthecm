@@ -196,7 +196,11 @@ export function RedesignAdvisor({
 
   // "Available spending" reads off the pieces present: drop the lump-sum clause
   // when nothing's left over, and the cash-flow clause when there's no lien.
-  const spendRow = tSpend ?? spending.rows[spending.rows.length - 1];
+  // Anchor the spending insight + honesty ledger to a realistic planning horizon
+  // (the marked age if set, else ~85). At the projection's tail the loan has
+  // compounded so far that equity floors to $0, which overstates the cost.
+  const spendRow =
+    tSpend ?? spending.rows.find((r) => r.age >= 85) ?? spending.rows[spending.rows.length - 1];
   const lumpClause = spending.lumpSum > 0 ? `${usd(spending.lumpSum)} as a lump sum at closing` : '';
   const freedClause =
     spending.annualFreed > 0
@@ -417,6 +421,36 @@ export function RedesignAdvisor({
                   when the loan-balance line is on). The freed monthly payment is true cash flow, not
                   borrowed, and runs until the old mortgage would have been paid off.
                 </p>
+                {spending.totalAvailable > 0 && (
+                  <div className="cost-ledger">
+                    <div className="ledger-col ledger-receive">
+                      <span className="ledger-head">You receive</span>
+                      <span className="ledger-big">{usd(spendRow.cumulative)}</span>
+                      <span className="ledger-sub">
+                        of new spending by age {spendRow.age} — {usd(spending.lumpSum)} lump sum
+                        {spending.annualFreed > 0
+                          ? ` plus ${usd(spending.monthlyFreed)}/mo freed for ${spending.freedYears} yr${spending.freedYears === 1 ? '' : 's'}`
+                          : ''}
+                        .
+                      </span>
+                    </div>
+                    <div className="ledger-col ledger-cost">
+                      <span className="ledger-head">It costs</span>
+                      <span className="ledger-big">{usd(Math.min(spendRow.loanBalance, spendRow.homeValue))}</span>
+                      <span className="ledger-sub">
+                        the most owed at age {spendRow.age} — leaving {usd(spendRow.equityWith)} of home
+                        equity, vs {usd(spendRow.equityWithout)} doing nothing
+                        {' '}({usd(Math.max(0, spendRow.equityWithout - spendRow.equityWith))} of equity used).
+                        FHA-insured & non-recourse: at sale, neither the borrower nor the heirs ever repay
+                        more than the home is worth — the MIP-funded insurance covers any shortfall
+                        {spendRow.loanBalance > spendRow.homeValue
+                          ? ` (the balance itself has grown to ${usd(spendRow.loanBalance)}, but that excess is never owed)`
+                          : ''}
+                        .
+                      </span>
+                    </div>
+                  </div>
+                )}
               </>
             )}
             {stage === 'networth' && (
