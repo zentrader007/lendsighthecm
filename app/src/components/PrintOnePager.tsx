@@ -144,13 +144,19 @@ export function PrintOnePager({
           </div>
 
           <div className="op-rail">
-            {(spending.lumpSum > 0 || spending.annualFreed > 0) && (
+            {spending.totalAvailable > 0 && (
               <div className="op-panel op-panel-green">
                 <div className="op-panel-head">New spending this plan creates</div>
                 {spending.lumpSum > 0 && (
                   <div className="op-line">
                     <span>Lump sum at closing</span>
                     <strong>{usd(spending.lumpSum)}</strong>
+                  </div>
+                )}
+                {spending.totalCreditDraws > 0 && (
+                  <div className="op-line">
+                    <span>Planned credit-line draws</span>
+                    <strong>{usd(spending.totalCreditDraws)}</strong>
                   </div>
                 )}
                 {spending.annualFreed > 0 && (

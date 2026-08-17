@@ -210,11 +210,16 @@ export function RedesignAdvisor({
     spending.annualFreed > 0
       ? `${usd(spending.monthlyFreed)}/mo of freed mortgage payment for ${spending.freedYears} yr${spending.freedYears === 1 ? '' : 's'}`
       : '';
-  const bothClauses = [lumpClause, freedClause].filter(Boolean).join(' plus ');
+  const drawsClause =
+    spending.totalCreditDraws > 0
+      ? `${usd(spending.totalCreditDraws)} of credit-line draws scheduled in the Year table (net of repayments)`
+      : '';
+  const bothClauses = [lumpClause, freedClause, drawsClause].filter(Boolean).join(' plus ');
+  const borrowed = spending.lumpSum > 0 || spending.totalCreditDraws > 0;
   const spendingInsight =
     !bothClauses
-      ? `With no lien to pay off and no cash drawn, this scenario frees no new spending — the value sits in the growing credit line (see Credit line growth). Enter a cash draw or an existing mortgage to model new spending.`
-      : `This reverse mortgage makes ${usd(spending.firstYearTotal)} available in year one — ${bothClauses}. By age ${spendRow.age} that totals ${usd(spendRow.cumulative)} of new spending${spending.lumpSum > 0 ? `. The lump sum is loan proceeds, so the balance accrues interest; the freed payment is true cash flow, not borrowed` : ''}.`;
+      ? `With no lien to pay off, no cash drawn, and no draws scheduled, this scenario frees no new spending — the value sits in the growing credit line (see Credit line growth). Enter a cash draw, an existing mortgage, or draws in the Year table to model new spending.`
+      : `This reverse mortgage makes ${usd(spending.firstYearTotal)} available in year one, and ${usd(spendRow.cumulative)} of new spending by age ${spendRow.age} — ${bothClauses}.${borrowed ? ` Lump sum and credit-line draws are loan proceeds, so the balance accrues interest on them; the freed payment is true cash flow, not borrowed.` : ''}`;
 
   const insights: Record<StageView, string> = {
     loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
@@ -299,10 +304,11 @@ export function RedesignAdvisor({
           so this is a separate check — but it's moot once the loan is over-drawn. */}
       {result.overDraw === 0 && result.firstYearDrawExcess > 0 && (
         <div className="warning-banner">
-          This cash draw is <strong>{usd(result.firstYearDrawExcess)}</strong> above HUD's
-          first-year disbursement limit of <strong>{usd(result.availableInitialDraw)}</strong> (the
-          60% rule). The projection still models it, but a lender could not disburse this much at
-          closing — take the excess after month 12, or reduce the cash draw.
+          First-year disbursements (cash at closing plus any year-1 draw in the Year table) are{' '}
+          <strong>{usd(result.firstYearDrawExcess)}</strong> above HUD's first-year limit of{' '}
+          <strong>{usd(result.availableInitialDraw)}</strong> (the 60% rule). The projection still
+          models it, but a lender could not disburse this much in the first 12 months — move the
+          excess to year 2 or later, or reduce the cash draw.
         </div>
       )}
 
@@ -418,6 +424,12 @@ export function RedesignAdvisor({
                   <span className="freed-value">{usd(spending.lumpSum)} lump sum</span>
                   <span className="freed-sep">·</span>
                   <span className="freed-value">{usd(spending.monthlyFreed)}/mo freed{spending.freedYears > 0 ? ` for ${spending.freedYears} yr${spending.freedYears === 1 ? '' : 's'}` : ''}</span>
+                  {spending.totalCreditDraws > 0 && (
+                    <>
+                      <span className="freed-sep">·</span>
+                      <span className="freed-value">{usd(spending.totalCreditDraws)} credit-line draws</span>
+                    </>
+                  )}
                   <span className="freed-sep">·</span>
                   <span className="freed-value">{usd(spending.firstYearTotal)} year 1</span>
                   <span className="freed-note">
@@ -426,13 +438,21 @@ export function RedesignAdvisor({
                       : ''}
                     HUD allows up to {usd(spending.hudMaxLumpSum)} at closing
                     {spending.lumpSumHeadroom > 0 ? ` (${usd(spending.lumpSumHeadroom)} more available)` : ''}
+                    {spending.totalCreditDraws > 0
+                      ? '. Credit-line draws come from the Year table — actual (credit-capped) draws, net of any repayment that year'
+                      : ''}
+                    {spending.drawsBeyondCredit > 0
+                      ? `; ${usd(spending.drawsBeyondCredit)} of requested draws exceeded the line and is not counted`
+                      : ''}
                   </span>
                 </p>
                 <AvailableSpendingChart rows={spending.rows} targetAge={markerAge} showBalance={showSpendingBalance} />
                 <p className="chart-caption">
-                  The lump sum is loan proceeds — spendable now, but the balance accrues interest (shown
-                  when the loan-balance line is on). The freed monthly payment is true cash flow, not
-                  borrowed, and runs until the old mortgage would have been paid off.
+                  The lump sum and any credit-line draws are loan proceeds — spendable, but the balance
+                  accrues interest on them (shown when the loan-balance line is on). The freed monthly
+                  payment is true cash flow, not borrowed, and runs until the old mortgage would have
+                  been paid off. Draws scheduled in the Year table appear here automatically, and vice
+                  versa.
                 </p>
                 {spending.totalAvailable > 0 && (
                   <div className="cost-ledger">
@@ -443,6 +463,9 @@ export function RedesignAdvisor({
                         of new spending by age {spendRow.age} — {usd(spending.lumpSum)} lump sum
                         {spending.annualFreed > 0
                           ? ` plus ${usd(spending.monthlyFreed)}/mo freed for ${spending.freedYears} yr${spending.freedYears === 1 ? '' : 's'}`
+                          : ''}
+                        {spendRow.cumulativeDraws > 0
+                          ? ` plus ${usd(spendRow.cumulativeDraws)} drawn from the credit line by then`
                           : ''}
                         .
                       </span>

@@ -47,7 +47,11 @@ export function ConsumerView({
     spending.annualFreed > 0
       ? `${usd(spending.monthlyFreed)} a month you no longer pay on your mortgage (for ${spending.freedYears} year${spending.freedYears === 1 ? '' : 's'})`
       : '';
-  const spendBoth = [spendLump, spendFreed].filter(Boolean).join(', plus ');
+  const spendDraws =
+    spending.totalCreditDraws > 0
+      ? `${usd(spending.totalCreditDraws)} drawn from your credit line over the years you planned`
+      : '';
+  const spendBoth = [spendLump, spendFreed, spendDraws].filter(Boolean).join(', plus ');
 
   // The age the reverse-mortgage net worth passes the do-nothing baseline —
   // the plainest way to say "this pays off." Shown only when it happens.
@@ -65,7 +69,7 @@ export function ConsumerView({
   const insights: Record<ConsumerStage, string> = {
     loc: `Your starting line of credit of ${usd(startLOC)} could grow to about ${usd(r85.availableLOC)} by age ${r85.age} — even if your home's value never changes.`,
     spending: spendBoth
-      ? `This reverse mortgage gives you ${spendBoth}. That's ${usd(spending.firstYearTotal)} of new spending in the first year, and about ${usd(spendLast.cumulative)} over time. The cash is borrowed against your home, so the loan balance grows; the freed-up payment is money you simply stop spending.`
+      ? `This reverse mortgage gives you ${spendBoth}. That's ${usd(spending.firstYearTotal)} of new spending in the first year, and about ${usd(spendLast.cumulative)} over time. Cash at closing and credit-line draws are borrowed against your home, so the loan balance grows; the freed-up payment is money you simply stop spending.`
       : `In this scenario the money stays in your growing line of credit rather than coming to you as new spending — see Credit line growth.`,
     networth: (hasLien
       ? `By age ${cmpLast.age}, using the reverse mortgage to pay off your ${usd(inputs.existingLiens)} mortgage leaves a projected net worth of ${usd(cmpLast.netWorthHecm)}, versus ${usd(cmpLast.netWorthNoHecm)} if you keep your current mortgage — because the reverse mortgage removes your ${usd(cmp.monthlyMortgagePayment)}/mo mortgage payment.`
@@ -140,6 +144,9 @@ export function ConsumerView({
                     of new spending by age {spendRef.age} — {usd(spending.lumpSum)} in cash
                     {spending.annualFreed > 0
                       ? ` plus about ${usd(spending.monthlyFreed)} a month you stop paying on your mortgage`
+                      : ''}
+                    {spendRef.cumulativeDraws > 0
+                      ? ` plus ${usd(spendRef.cumulativeDraws)} drawn from your credit line by then`
                       : ''}
                     .
                   </span>

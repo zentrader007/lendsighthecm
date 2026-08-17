@@ -9,10 +9,16 @@
 //   - FREED CASH FLOW: the monthly mortgage payment the HECM eliminates. This is
 //     true recurring spending power, not borrowed, and it runs only until the old
 //     mortgage would have been paid off anyway (freedPaymentYears).
+//   - CREDIT-LINE DRAWS: the draws scheduled in the Year table. Borrowed, like the
+//     lump sum — and guarded so they can't be overstated: only the engine's
+//     ACTUAL (credit-capped) draws count, net of any repayment made the same
+//     year (so borrow/repay/re-borrow isn't double-counted, and a client who
+//     keeps voluntarily paying isn't shown both a "freed" payment and that same
+//     cash as spending).
 //
-// LOC / tenure draws are deliberately excluded — those are additional borrowing,
-// not money the HECM has already freed. Both figures are reused straight from the
-// existing engine (runSimulation + runMortgageComparison); nothing is recomputed.
+// Tenure is a hypothetical (the "monthly for life" card), not a scheduled draw,
+// so it is not counted. Every figure is reused straight from the existing engine
+// (runSimulation + runMortgageComparison); nothing is recomputed.
 import { runSimulation } from './index';
 import { runMortgageComparison } from './comparison';
 import type { SimulationInputs } from './types';
@@ -22,7 +28,9 @@ export interface SpendingRow {
   age: number;
   lumpSum: number; // year 1 only, 0 after
   freedCashFlow: number; // annual freed P&I, 0 after the mortgage's payoff year
-  total: number; // lumpSum + freedCashFlow for the year
+  creditDraws: number; // scheduled draws actually taken this year, net of repayments, floored at 0
+  cumulativeDraws: number; // running total of creditDraws
+  total: number; // lumpSum + freedCashFlow + creditDraws for the year
   cumulative: number; // running total of `total`
   loanBalance: number; // the HECM balance (upb) — the cost side of the lump sum
   homeValue: number; // appreciated home value this year — the non-recourse cap on what's owed
@@ -45,8 +53,10 @@ export interface SpendingResult {
   monthlyFreed: number; // freed mortgage payment per month
   annualFreed: number; // freed mortgage payment per year
   freedYears: number; // years the freed payment runs (until the mortgage's payoff)
-  firstYearTotal: number; // lumpSum + one year of freed cash flow
-  totalAvailable: number; // lumpSum + annualFreed × freedYears
+  totalCreditDraws: number; // sum of creditDraws over the projection
+  drawsBeyondCredit: number; // requested draws the credit line couldn't cover (never shown as spending)
+  firstYearTotal: number; // lumpSum + one year of freed cash flow + year-1 credit draws
+  totalAvailable: number; // final cumulative: lumpSum + freed × years + credit draws
 }
 
 export function runAvailableSpending(inp: SimulationInputs): SpendingResult {
@@ -73,19 +83,27 @@ export function runAvailableSpending(inp: SimulationInputs): SpendingResult {
 
   const rows: SpendingRow[] = [];
   let cumulative = 0;
+  let totalCreditDraws = 0;
   for (let t = 1; t <= N; t++) {
     const row = hecm.projection[t];
     const lump = t === 1 ? lumpSum : 0;
     // Freed cash flow runs only while the old mortgage would still have been
     // paid — after that, the no-HECM borrower would owe nothing either.
     const freed = t <= freedYears ? annualFreed : 0;
-    const total = lump + freed;
+    // Credit-line draws: the ACTUAL draw the engine allowed (capped at the
+    // credit available), net of any repayment that year — a repayment is the
+    // client's own money going back in, so it isn't new spending.
+    const draws = Math.max(0, (row.draw ?? 0) - (row.payment ?? 0));
+    totalCreditDraws += draws;
+    const total = lump + freed + draws;
     cumulative += total;
     rows.push({
       year: t,
       age: row.age,
       lumpSum: lump,
       freedCashFlow: freed,
+      creditDraws: draws,
+      cumulativeDraws: totalCreditDraws,
       total,
       cumulative,
       loanBalance: row.upb,
@@ -106,7 +124,9 @@ export function runAvailableSpending(inp: SimulationInputs): SpendingResult {
     monthlyFreed,
     annualFreed,
     freedYears,
-    firstYearTotal: lumpSum + annualFreed,
-    totalAvailable: lumpSum + annualFreed * freedYears,
+    totalCreditDraws,
+    drawsBeyondCredit: hecm.drawsBeyondCredit,
+    firstYearTotal: rows[0]?.total ?? lumpSum + annualFreed,
+    totalAvailable: cumulative,
   };
 }

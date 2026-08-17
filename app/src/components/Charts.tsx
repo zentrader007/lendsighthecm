@@ -337,11 +337,13 @@ export function AvailableSpendingChart({
   const data = rows.map((r) => ({
     age: r.age,
     lumpSum: r.lumpSum,
+    creditDraws: r.creditDraws,
     freedCashFlow: r.freedCashFlow,
     cumulative: r.cumulative,
     loanBalance: r.loanBalance,
   }));
   const m = atAge(data, targetAge);
+  const hasDraws = rows.some((r) => r.creditDraws > 0);
   return (
     <ChartCard title={consumer ? 'The new spending this makes available' : 'Available Spending: Lump Sum + Freed Cash Flow'}>
       <ResponsiveContainer width="100%" height="100%">
@@ -354,7 +356,12 @@ export function AvailableSpendingChart({
           <YAxis yAxisId="right" orientation="right" tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={56} />
           <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
           <Legend />
+          {/* Borrowed money in the blue family (lump sum, credit-line draws);
+              freed cash flow in green — so borrowing never reads as income. */}
           <Bar yAxisId="left" dataKey="lumpSum" name={consumer ? 'Cash at closing' : 'Lump sum (at closing)'} stackId="a" fill="#4a7c9b" />
+          {hasDraws && (
+            <Bar yAxisId="left" dataKey="creditDraws" name={consumer ? 'Drawn from your credit line' : 'Credit-line draws (Year table, net of repayments)'} stackId="a" fill="#7bb5d6" />
+          )}
           <Bar yAxisId="left" dataKey="freedCashFlow" name={consumer ? 'Freed-up payment (per year)' : 'Freed cash flow (per year)'} stackId="a" fill="#5b9f5b" />
           <Line yAxisId="right" type="monotone" dataKey="cumulative" name={consumer ? 'Total made available' : 'Cumulative available'} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
           {showBalance && (

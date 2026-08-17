@@ -202,6 +202,30 @@ describe('two-world net-worth comparison', () => {
     near(y0.portfolioHecm - y0.portfolioNoHecm, 100000 - res.hecm.pocCosts, 1);
   });
 
+  it('credits scheduled credit-line draws to the HECM portfolio (they don’t vanish)', () => {
+    // A $30k draw in year 5 raises the loan balance (lowering equity) — it must
+    // also land in the portfolio as cash in hand, so HECM net worth is roughly
+    // unchanged at the draw, not $30k poorer.
+    const draws = Array(38).fill(0);
+    draws[4] = 30_000; // year 5
+    const plain = runMortgageComparison({ ...base, existingLiens: 0, initialCashDraw: 0 });
+    const drawn = runMortgageComparison({ ...base, existingLiens: 0, initialCashDraw: 0, draws });
+    const y5p = plain.rows[5];
+    const y5d = drawn.rows[5];
+    // Portfolio up by the draw grown one year at the investment return.
+    near(y5d.portfolioHecm - y5p.portfolioHecm, 30_000 * (1 + base.investmentReturn), 1);
+    // Equity down by the draw grown one year at the loan rate — so net worth
+    // moves only by the small rate differential, not by the whole $30k.
+    const nwGap = y5p.netWorthHecm - y5d.netWorthHecm;
+    expect(Math.abs(nwGap)).toBeLessThan(30_000 * 0.05);
+
+    // A repayment is cash OUT of the portfolio.
+    const payments = Array(38).fill(0);
+    payments[6] = 10_000; // year 7
+    const repaid = runMortgageComparison({ ...base, existingLiens: 0, initialCashDraw: 0, draws, payments });
+    expect(repaid.rows[7].portfolioHecm).toBeLessThan(drawn.rows[7].portfolioHecm);
+  });
+
   it('credits the cash draw whether or not a lien is present (no toggle shorting)', () => {
     // A cash draw is an asset in hand, so it must be credited in BOTH cases — or
     // adding a lien would drop the HECM line as the draw silently vanished. The

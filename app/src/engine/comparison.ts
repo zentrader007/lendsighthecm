@@ -143,6 +143,13 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
 
     if (t > 0) {
       const piThisYear = t <= payoffYear ? annualPI : 0;
+
+      // Scheduled credit-line draws are cash in hand (an asset), and repayments
+      // are cash out — mirror both in the HECM portfolio so a draw doesn't
+      // simply raise the balance (lowering equity) and vanish. Same treatment as
+      // the closing cash draw above; the balance side is already in row.upb.
+      const cashFromLoan = (row.draw ?? 0) - (row.payment ?? 0);
+      pHecm = Math.max(0, pHecm + cashFromLoan);
       // No-HECM: living spending + mortgage P&I (until the loan is paid off) —
       // unless build-savings mode funds that P&I from income, leaving the
       // portfolio untouched by it.

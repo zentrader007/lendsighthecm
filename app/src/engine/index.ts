@@ -87,11 +87,6 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
 
   const h4pDownPaymentMin = homeValue - principalLimit + financedCosts;
 
-  // HUD caps year-one disbursements (the 60% rule), which availableInitialDraw
-  // already computes. Report any cash draw beyond it so an illustration can't
-  // quietly show a first-year disbursement HUD would not permit.
-  const firstYearDrawExcess = Math.max(0, initialCashDraw - availableInitialDraw);
-
   // --- Projection ---
   const projection: ProjectionRow[] = [];
 
@@ -276,6 +271,17 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
       accessibleResources,
     });
   }
+
+  // HUD caps disbursements in the first 12 months (the 60% rule), which
+  // availableInitialDraw computes. The cash at closing AND a scheduled year-1
+  // draw (taken at the start of year 1, i.e. inside that window) both count
+  // toward it — report any excess so an illustration can't quietly show a
+  // first-year disbursement HUD would not permit. Uses the actual (capped)
+  // year-1 draw, not the requested figure.
+  const firstYearDrawExcess = Math.max(
+    0,
+    initialCashDraw + (projection[1]?.draw ?? 0) - availableInitialDraw,
+  );
 
   return {
     plf,
