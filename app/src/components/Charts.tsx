@@ -93,6 +93,43 @@ const markerDot = (age: number, y: number, color: string, yAxisId?: string) => (
   />
 );
 
+// A highlight marker that reads a word label (not a dollar figure): a solid dot
+// with a centered caption. Used for the net-worth break-even and the "savings
+// run dry" points, where the age it happens is the story, not the amount. `dy`
+// nudges the caption above (negative) or below (positive) the dot so stacked
+// markers don't collide.
+const labelDot = (age: number, y: number, color: string, text: string, dy = -12) => (
+  <ReferenceDot
+    x={age}
+    y={y}
+    r={5}
+    fill={color}
+    stroke="#fff"
+    strokeWidth={2}
+    label={(p: { viewBox?: DotViewBox }) => {
+      const vb = p.viewBox ?? {};
+      const cx = vb.cx ?? (vb.x ?? 0) + (vb.width ?? 0) / 2;
+      const cy = vb.cy ?? (vb.y ?? 0) + (vb.height ?? 0) / 2;
+      return (
+        <text
+          x={cx}
+          y={cy + dy}
+          fontSize={12}
+          fontWeight={700}
+          fontFamily="DM Mono, monospace"
+          fill={color}
+          stroke="#fff"
+          strokeWidth={3}
+          paintOrder="stroke"
+          textAnchor="middle"
+        >
+          {text}
+        </text>
+      );
+    }}
+  />
+);
+
 export function HomeEquityChart({ projection, targetAge, consumer }: { projection: ProjectionRow[]; targetAge?: number; consumer?: boolean }) {
   const data = toData(projection);
   const m = atAge(data, targetAge);
@@ -184,13 +221,20 @@ export function InvestChart({ projection, targetAge }: { projection: ProjectionR
   );
 }
 
-export function MortgageComparisonChart({ rows, targetAge, consumer, noLien }: { rows: ComparisonRow[]; targetAge?: number; consumer?: boolean; noLien?: boolean }) {
+export function MortgageComparisonChart({ rows, targetAge, consumer, noLien, breakEvenAge, noHecmDepletionAge, hecmDepletionAge }: { rows: ComparisonRow[]; targetAge?: number; consumer?: boolean; noLien?: boolean; breakEvenAge?: number; noHecmDepletionAge?: number; hecmDepletionAge?: number }) {
   const data = rows.map((r) => ({
     age: r.age,
     netWorthHecm: r.netWorthHecm,
     netWorthNoHecm: r.netWorthNoHecm,
   }));
   const m = atAge(data, targetAge);
+  const be = atAge(data, breakEvenAge);
+  // "Savings run dry": the age each world's liquid portfolio is exhausted (the
+  // net-worth line is all home equity past this point). The freed mortgage
+  // payment is exactly why the two ages differ.
+  const dryNo = atAge(data, noHecmDepletionAge);
+  const dryHecm = atAge(data, hecmDepletionAge);
+  const dryLabel = (age: number) => `${consumer ? 'Savings run out' : 'Savings dry'} · age ${age}`;
   // Without a mortgage to pay off, the baseline is "do nothing" rather than
   // "keep the mortgage", so the title and the no-HECM line are relabeled.
   const title = noLien
@@ -219,6 +263,18 @@ export function MortgageComparisonChart({ rows, targetAge, consumer, noLien }: {
           <Legend />
           <Line type="monotone" dataKey="netWorthHecm" name={hecmName} stroke="#5b9f5b" dot={false} strokeWidth={2.5} />
           <Line type="monotone" dataKey="netWorthNoHecm" name={noHecmName} stroke="#1b2a4a" dot={false} strokeWidth={2.5} />
+          {/* Break-even: the age the HECM line overtakes the baseline. Drawn
+              first so the target-age marker (if any) sits on top of it. */}
+          {be && breakEvenAge != null && (
+            <>
+              <ReferenceLine x={breakEvenAge} stroke="#c9820a" strokeDasharray="2 3" strokeWidth={1.5} />
+              {labelDot(breakEvenAge, be.netWorthHecm, '#c9820a', `Break-even · age ${breakEvenAge}`)}
+            </>
+          )}
+          {/* Savings-run-dry markers on each line, captioned below the dot so
+              they clear the value labels above. */}
+          {dryNo && noHecmDepletionAge != null && labelDot(noHecmDepletionAge, dryNo.netWorthNoHecm, '#b23a3a', dryLabel(noHecmDepletionAge), 20)}
+          {dryHecm && hecmDepletionAge != null && labelDot(hecmDepletionAge, dryHecm.netWorthHecm, '#b23a3a', dryLabel(hecmDepletionAge), 20)}
           {m && (
             <>
               {markerLine(m.age)}

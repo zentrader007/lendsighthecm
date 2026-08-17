@@ -45,14 +45,27 @@ export function ConsumerView({
       : '';
   const spendBoth = [spendLump, spendFreed].filter(Boolean).join(', plus ');
 
+  // The age the reverse-mortgage net worth passes the do-nothing baseline —
+  // the plainest way to say "this pays off." Shown only when it happens.
+  const beClause = cmp.breakEvenAge ? ` You come out ahead by age ${cmp.breakEvenAge}.` : '';
+  // Longevity: when the no-HECM savings run dry, removing the mortgage payment
+  // makes the money last longer — the value the break-even misses at typical
+  // returns. Complementary: one clause fires when the other doesn't.
+  const longevityClause =
+    cmp.noHecmDepletionAge != null
+      ? cmp.hecmDepletionAge != null
+        ? ` Your savings last to about age ${cmp.hecmDepletionAge} with the reverse mortgage, versus age ${cmp.noHecmDepletionAge} without it.`
+        : ` Without the reverse mortgage your savings run out around age ${cmp.noHecmDepletionAge}; with it, they last through the projection.`
+      : '';
+
   const insights: Record<ConsumerStage, string> = {
     loc: `Your starting line of credit of ${usd(startLOC)} could grow to about ${usd(r85.availableLOC)} by age ${r85.age} — even if your home's value never changes.`,
     spending: spendBoth
       ? `This reverse mortgage gives you ${spendBoth}. That's ${usd(spending.firstYearTotal)} of new spending in the first year, and about ${usd(spendLast.cumulative)} over time. The cash is borrowed against your home, so the loan balance grows; the freed-up payment is money you simply stop spending.`
       : `In this scenario the money stays in your growing line of credit rather than coming to you as new spending — see Credit line growth.`,
-    networth: hasLien
+    networth: (hasLien
       ? `By age ${cmpLast.age}, using the reverse mortgage to pay off your ${usd(inputs.existingLiens)} mortgage leaves a projected net worth of ${usd(cmpLast.netWorthHecm)}, versus ${usd(cmpLast.netWorthNoHecm)} if you keep your current mortgage — because the reverse mortgage removes your monthly payment.`
-      : `With the reverse mortgage, your projected net worth at age ${cmpLast.age} is ${usd(cmpLast.netWorthHecm)} — your home equity after the loan balance, plus the ${usd(cmp.hecm.netCashDrawn)} you take at closing invested — versus ${usd(cmpLast.netWorthNoHecm)} if you take no reverse mortgage. The difference reflects the loan's growth and costs, set against those invested proceeds.`,
+      : `With the reverse mortgage, your projected net worth at age ${cmpLast.age} is ${usd(cmpLast.netWorthHecm)} — your home equity after the loan balance, plus the ${usd(cmp.hecm.netCashDrawn)} you take at closing invested — versus ${usd(cmpLast.netWorthNoHecm)} if you take no reverse mortgage. The difference reflects the loan's growth and costs, set against those invested proceeds.`) + beClause + longevityClause,
     equity: `At age ${r85.age} your home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity for you or your heirs.`,
   };
 
@@ -115,7 +128,7 @@ export function ConsumerView({
           <AvailableSpendingChart rows={spending.rows} consumer showBalance />
         )}
         {stage === 'networth' && (
-          <MortgageComparisonChart rows={cmp.rows} consumer noLien={!hasLien} />
+          <MortgageComparisonChart rows={cmp.rows} consumer noLien={!hasLien} breakEvenAge={cmp.breakEvenAge ?? undefined} noHecmDepletionAge={cmp.noHecmDepletionAge ?? undefined} hecmDepletionAge={cmp.hecmDepletionAge ?? undefined} />
         )}
         {stage === 'equity' && <HomeEquityChart projection={result.projection} consumer />}
 

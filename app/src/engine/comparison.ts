@@ -46,6 +46,12 @@ export interface ComparisonResult {
   noHecmDepletionAge: number | null;
   hecmDepletionYear: number | null;
   hecmDepletionAge: number | null;
+  // The first year the HECM net worth catches up to and overtakes the no-HECM
+  // line — the "you come out ahead by age X" break-even. null when the HECM
+  // starts at or above the no-HECM line (no catch-up to show) or never crosses
+  // within the horizon.
+  breakEvenYear: number | null;
+  breakEvenAge: number | null;
   hecm: SimulationResult;
 }
 
@@ -177,6 +183,21 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
   }
 
   const age0 = inp.age;
+
+  // Break-even: only a story worth marking when the HECM starts BEHIND (its
+  // upfront cost / higher opening balance) and later overtakes. If it opens at
+  // or above the no-HECM line there's no catch-up to point to.
+  let breakEvenYear: number | null = null;
+  if (rows.length > 1 && rows[0].netWorthHecm < rows[0].netWorthNoHecm) {
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i].netWorthHecm >= rows[i].netWorthNoHecm) {
+        breakEvenYear = rows[i].year;
+        break;
+      }
+    }
+  }
+  const breakEvenAge = breakEvenYear === null ? null : age0 + breakEvenYear;
+
   // No payment freed → no freed-payment years (the payoff loop would otherwise
   // report 1, since a zero balance reads as "paid off" in year 1).
   const freedPaymentYears = annualPI > 0 ? payoffYear : 0;
@@ -191,6 +212,8 @@ export function runMortgageComparison(inp: SimulationInputs): ComparisonResult {
     noHecmDepletionAge: noHecmDepletionYear === null ? null : age0 + noHecmDepletionYear,
     hecmDepletionYear,
     hecmDepletionAge: hecmDepletionYear === null ? null : age0 + hecmDepletionYear,
+    breakEvenYear,
+    breakEvenAge,
     hecm,
   };
 }

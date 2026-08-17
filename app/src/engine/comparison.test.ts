@@ -58,6 +58,34 @@ describe('two-world net-worth comparison', () => {
     ).toBe(true);
   });
 
+  it('reports the break-even age where HECM net worth overtakes the baseline', () => {
+    // A break-even on RAW net worth only exists when the freed money out-earns the
+    // HECM's ~7% balance growth — i.e. the assumed return clears the loan rate.
+    // At a 9% portfolio return (sustainable withdrawal), the HECM catches up.
+    const res = runMortgageComparison({
+      ...base,
+      portfolioValue: 1_000_000,
+      annualSpending: 35_000,
+      investmentReturn: 0.09,
+    });
+    expect(res.breakEvenYear).not.toBeNull();
+    expect(res.breakEvenAge).toBe(70 + res.breakEvenYear!);
+    // At break-even the HECM is at/above the baseline; the year before, behind.
+    const beRow = res.rows.find((r) => r.year === res.breakEvenYear)!;
+    const prevRow = res.rows.find((r) => r.year === res.breakEvenYear! - 1)!;
+    expect(beRow.netWorthHecm).toBeGreaterThanOrEqual(beRow.netWorthNoHecm);
+    expect(prevRow.netWorthHecm).toBeLessThan(prevRow.netWorthNoHecm);
+  });
+
+  it('no break-even at a typical return, where a reverse mortgage lags on raw net worth', () => {
+    // The default base (5% return, 6.5% mortgage vs a ~7% HECM balance): keeping a
+    // cheap amortizing mortgage wins on terminal net worth, so the HECM line never
+    // overtakes. The value there is cash flow / longevity, not net worth — so there
+    // is honestly no break-even to mark.
+    expect(runMortgageComparison(base).breakEvenYear).toBeNull();
+    expect(runMortgageComparison(base).breakEvenAge).toBeNull();
+  });
+
   it('year 0 snapshot: no-HECM equity is full home value, HECM equity nets the balance', () => {
     const res = runMortgageComparison(base);
     const y0 = res.rows[0];
