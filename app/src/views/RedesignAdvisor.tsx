@@ -191,7 +191,7 @@ export function RedesignAdvisor({
     ? ` The HECM net worth pulls ahead of the baseline by age ${cmp.breakEvenAge}.`
     : '';
   const networthInsight = (hasLien
-    ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.annualMortgagePayment)}/yr payment — ${freedDesc}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
+    ? `Like-for-like at age ${cmpRow.age}: keeping the ${usd(inp.existingLiens)} mortgage, net worth is ${usd(cmpRow.netWorthNoHecm)} (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio); with the HECM it is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio). The HECM removes the ${usd(cmp.monthlyMortgagePayment)}/mo (${usd(cmp.annualMortgagePayment)}/yr) payment — ${freedDesc}.${cmp.noHecmDepletionAge ? ` Keeping the mortgage, the portfolio runs dry at age ${cmp.noHecmDepletionAge}.` : ''}`
     : `At age ${cmpRow.age}, net worth with the HECM is ${usd(cmpRow.netWorthHecm)} (${usd(cmpRow.homeEquityHecm)} home equity + ${usd(cmpRow.portfolioHecm)} portfolio, including the ${usd(inp.initialCashDraw)} of proceeds invested at ${pct(inp.investmentReturn, 1)}), vs ${usd(cmpRow.netWorthNoHecm)} with no reverse mortgage (${usd(cmpRow.homeEquityNoHecm)} home equity + ${usd(cmpRow.portfolioNoHecm)} portfolio). The gap is the growing loan balance and closing costs, set against those proceeds compounding.`) + breakEvenClause;
 
   // "Available spending" reads off the pieces present: drop the lump-sum clause
@@ -478,6 +478,8 @@ export function RedesignAdvisor({
                   <>
                     <p className="freed-cashflow">
                       <span className="freed-label">Freed cash flow</span>
+                      <span className="freed-value">{usd(cmp.monthlyMortgagePayment)}/mo</span>
+                      <span className="freed-sep">·</span>
                       <span className="freed-value">{usd(cmp.annualMortgagePayment)}/yr</span>
                       <span className="freed-sep">·</span>
                       <span className="freed-value">{usd(cmp.cumulativeFreedPayment)}</span>
