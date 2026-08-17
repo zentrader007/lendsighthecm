@@ -69,6 +69,26 @@ describe('Sequence-of-returns analysis', () => {
     expect(tight.totalBridgeDraws).toBeLessThan(400000);
   });
 
+  it('the kept mortgage drains the sell-assets side: portfolio and net worth both drop', () => {
+    // Same scenario, but the no-HECM client keeps a $150k mortgage. Its P&I must
+    // come out of that portfolio and its residual must net out of that home
+    // equity — so both the sell-assets portfolio and its net worth fall relative
+    // to the free-and-clear case. The bridge (HECM) side is untouched: the loan
+    // pays the lien off at closing.
+    const noLien = runSequenceAnalysis(caseStudy);
+    const withLien = runSequenceAnalysis({
+      ...caseStudy,
+      existingLiens: 150_000,
+      existingLienRate: 0.065,
+      existingLienTermRemaining: 25,
+    });
+    const yr = 3; // while the mortgage is still being paid
+    // Portfolio drained faster by the P&I...
+    expect(withLien.rows[yr - 1].portfolioSell).toBeLessThan(noLien.rows[yr - 1].portfolioSell);
+    // ...and home equity reduced by the residual balance → lower net worth.
+    expect(withLien.rows[yr - 1].netSell).toBeLessThan(noLien.rows[yr - 1].netSell);
+  });
+
   it('no crash + no bridge years degenerates to two identical-spending paths', () => {
     const calm = runSequenceAnalysis({ ...caseStudy, crashPct: 0, recoveryYears: 0 });
     // Sell-assets path starts at the full $1M and survives the horizon.

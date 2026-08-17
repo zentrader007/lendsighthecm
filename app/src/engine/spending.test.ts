@@ -78,6 +78,24 @@ describe('available spending', () => {
     near(s.firstYearTotal, s.lumpSum + s.annualFreed, 0.01);
   });
 
+  it('a lien with 0 remaining term frees no payment, so nothing reads as freed', () => {
+    // Degenerate but typeable in a live demo: a balance with a payment override
+    // but zero remaining term. No year can free a payment, so the monthly/annual
+    // figures must read 0 too — not a phantom year of cash flow.
+    const s = runAvailableSpending({
+      ...base,
+      existingLiens: 150_000,
+      existingLienTermRemaining: 0,
+      existingLienPayment: 1_500,
+      initialCashDraw: 0,
+    });
+    expect(s.freedYears).toBe(0);
+    expect(s.monthlyFreed).toBe(0);
+    expect(s.annualFreed).toBe(0);
+    expect(s.firstYearTotal).toBe(s.lumpSum); // no phantom year of freed cash flow
+    expect(s.rows.every((row) => row.freedCashFlow === 0)).toBe(true);
+  });
+
   it('reports HUD first-year headroom, floored at 0 when over the limit', () => {
     const r = runSimulation({ ...base, initialCashDraw: 10_000 });
     const under = runAvailableSpending({ ...base, initialCashDraw: 10_000 });

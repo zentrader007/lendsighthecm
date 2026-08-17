@@ -174,7 +174,7 @@ export function RedesignAdvisor({
     sellDies && !bridgeDies
       ? `Selling assets through the downturn, the portfolio runs dry at age ${seq.sellDepletionAge} with ${usd(seq.unfundedSell)} of spending unfunded. Bridging ${usd(seq.totalBridgeDraws)} of spending from the credit line keeps the portfolio alive through age ${seqLast.age}, ending at ${usd(seqLast.portfolioBridge)} — the trade-off is a ${usd(seqLast.hecmDebt)} loan balance, leaving ${usd(seqLast.equity)} of home equity.`
       : !sellDies && !bridgeDies
-        ? `Both strategies fund spending through age ${seqLast.age}. The bridge ends with a ${usd(seqLast.portfolioBridge)} portfolio plus ${usd(seqLast.equity)} home equity (${usd(seqLast.netBridge)} total); selling assets ends with ${usd(seqLast.portfolioSell)} plus a free-and-clear home (${usd(seqLast.netSell)} total). With no depletion risk at this spending level, the standby line is insurance rather than a numbers win.`
+        ? `Both strategies fund spending through age ${seqLast.age}. The bridge ends with a ${usd(seqLast.portfolioBridge)} portfolio plus ${usd(seqLast.equity)} home equity (${usd(seqLast.netBridge)} total); selling assets ends with ${usd(seqLast.portfolioSell)} plus ${usd(seqLast.netSell - seqLast.portfolioSell)} of home equity (${usd(seqLast.netSell)} total). With no depletion risk at this spending level, the standby line is insurance rather than a numbers win.`
         : bridgeDies && !sellDies
           ? `At this spending level the bridge does not help: even drawing from the credit line, the portfolio runs dry at age ${seq.bridgeDepletionAge}, while selling assets alone funds spending through age ${seqLast.age}. The standby line's capacity is finite — lower the spending or shorten the bridge.`
           : `Spending outruns both strategies: the portfolio depletes at age ${seq.sellDepletionAge} without the HECM and age ${seq.bridgeDepletionAge} with the bridge. Consider lower annual spending, or test a smaller market drop.`;
@@ -475,7 +475,17 @@ export function RedesignAdvisor({
               </>
             )}
             {stage === 'equity' && <HomeEquityChart projection={result.projection} targetAge={markerAge} />}
-            {stage === 'invest' && <InvestChart projection={result.projection} targetAge={markerAge} />}
+            {stage === 'invest' && (
+              <>
+                <InvestChart projection={result.projection} targetAge={markerAge} />
+                <p className="chart-caption">
+                  Reverse-mortgage loan proceeds are typically not taxable income. The after-tax
+                  haircut here is applied only to the invested side, so it stands fairly against
+                  assets that would be taxed when sold to spend — it is not a tax on the HECM cash
+                  itself.
+                </p>
+              </>
+            )}
             {stage === 'seqrisk' && (
               <>
                 <div className="scenario-bar seq-controls">

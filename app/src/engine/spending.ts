@@ -57,9 +57,12 @@ export function runAvailableSpending(inp: SimulationInputs): SpendingResult {
   const hudMaxLumpSum = hecm.availableInitialDraw;
   const lumpSumHeadroom = Math.max(0, hudMaxLumpSum - grossCashAtClosing);
 
-  const monthlyFreed = cmp.monthlyMortgagePayment;
-  const annualFreed = cmp.annualMortgagePayment;
   const freedYears = cmp.freedPaymentYears; // already 0 when no payment is freed
+  // When no year actually frees a payment (e.g. a lien entered with 0 remaining
+  // term), the monthly/annual figures must read 0 too — otherwise firstYearTotal
+  // and the stat strip would claim a year of cash flow the chart never shows.
+  const monthlyFreed = freedYears > 0 ? cmp.monthlyMortgagePayment : 0;
+  const annualFreed = freedYears > 0 ? cmp.annualMortgagePayment : 0;
 
   const rows: SpendingRow[] = [];
   let cumulative = 0;

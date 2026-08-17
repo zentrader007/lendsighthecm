@@ -13,6 +13,7 @@
 // then investmentReturn. Withdrawals at the beginning of each year; the HECM
 // side (debt, LOC, equity) accrues monthly via runSimulation.
 import { runSimulation } from './index';
+import { monthlyMortgagePayment, residualMortgage } from './comparison';
 import type { SimulationInputs, SimulationResult } from './types';
 
 export interface SequenceRow {
@@ -36,7 +37,7 @@ export interface SequenceResult {
   sellDepletionAge: number | null;
   bridgeDepletionYear: number | null;
   bridgeDepletionAge: number | null;
-  unfundedSell: number; // spending the sell-assets strategy could not cover
+  unfundedSell: number; // spending (and kept-mortgage P&I) the sell-assets strategy could not cover
   unfundedBridge: number;
   totalBridgeDraws: number;
   hecm: SimulationResult; // the underlying HECM run with the bridge schedule
@@ -49,6 +50,34 @@ export function runSequenceAnalysis(inp: SimulationInputs): SequenceResult {
   const crash = Math.min(Math.max(inp.crashPct, 0), 0.95);
 
   const marketReturn = (y: number) => (y <= R ? inp.recoveryReturn : inp.investmentReturn);
+
+  // An existing lien the no-HECM ("sell assets") client keeps carrying: its P&I
+  // drains that portfolio each year and its residual balance nets out of that
+  // home equity — exactly as the Net Worth tab models the keep-the-mortgage
+  // world. The bridge (HECM) side has the lien paid off at closing, so it carries
+  // neither. Without this, the sell-assets path would get a free-and-clear home
+  // and skip the mortgage entirely, overstating it against the HECM.
+  const lien = Math.max(0, inp.existingLiens);
+  const lienRate = Math.max(0, inp.existingLienRate);
+  const lienTerm = Math.min(Math.max(Math.floor(inp.existingLienTermRemaining) || 0, 0), 40);
+  const monthlyPI =
+    lien <= 0
+      ? 0
+      : inp.existingLienPayment > 0
+        ? inp.existingLienPayment
+        : monthlyMortgagePayment(lien, lienRate, lienTerm);
+  const annualPI = 12 * monthlyPI;
+  // The mortgage is actually retired the first year its amortizing balance hits
+  // zero (sooner than the term if the entered payment is larger), matching the
+  // Net Worth tab's real-payoff logic.
+  const maxPayYear = Math.min(lienTerm, N);
+  let payoffYear = maxPayYear;
+  for (let t = 1; t <= maxPayYear; t++) {
+    if (residualMortgage(lien, lienRate, lienTerm, t, monthlyPI) <= 0) {
+      payoffYear = t;
+      break;
+    }
+  }
 
   // Bridge schedule: request spending from the LOC during the recovery years.
   // The engine caps each draw at the credit actually available that year, so we
@@ -74,9 +103,13 @@ export function runSequenceAnalysis(inp: SimulationInputs): SequenceResult {
   for (let y = 1; y <= N; y++) {
     const r = marketReturn(y);
 
-    if (pSell > 0 && pSell <= spend && sellDepletionYear === null) sellDepletionYear = y;
-    const wSell = Math.min(spend, pSell);
-    unfundedSell += spend - wSell;
+    // Keep-the-mortgage world: living spending PLUS the mortgage P&I (until the
+    // loan is paid off) both come out of the portfolio.
+    const piThisYear = y <= payoffYear ? annualPI : 0;
+    const sellNeed = spend + piThisYear;
+    if (pSell > 0 && pSell <= sellNeed && sellDepletionYear === null) sellDepletionYear = y;
+    const wSell = Math.min(sellNeed, pSell);
+    unfundedSell += sellNeed - wSell;
     pSell = (pSell - wSell) * (1 + r);
 
     const bridgeDraw = drawnInYear(y);
@@ -91,6 +124,9 @@ export function runSequenceAnalysis(inp: SimulationInputs): SequenceResult {
     // The engine caps draws at the available credit, so this can't go negative;
     // kept as a cheap guard against an extreme input surfacing a negative line.
     const hecmLOC = Math.max(0, row.availableLOC);
+    // The kept mortgage's shrinking balance reduces the sell-assets home equity;
+    // 0 (free and clear) once there's no lien or it's paid off.
+    const residSell = residualMortgage(lien, lienRate, lienTerm, y, monthlyPI);
     rows.push({
       year: y,
       age: row.age,
@@ -102,7 +138,7 @@ export function runSequenceAnalysis(inp: SimulationInputs): SequenceResult {
       hecmLOC,
       equity: row.equity,
       netBridge: pBridge + row.equity,
-      netSell: pSell + row.homeValue,
+      netSell: pSell + Math.max(0, row.homeValue - residSell),
     });
   }
 

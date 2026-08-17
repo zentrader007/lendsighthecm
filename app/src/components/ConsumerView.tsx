@@ -52,7 +52,7 @@ export function ConsumerView({
       : `In this scenario the money stays in your growing line of credit rather than coming to you as new spending — see Credit line growth.`,
     networth: hasLien
       ? `By age ${cmpLast.age}, using the reverse mortgage to pay off your ${usd(inputs.existingLiens)} mortgage leaves a projected net worth of ${usd(cmpLast.netWorthHecm)}, versus ${usd(cmpLast.netWorthNoHecm)} if you keep your current mortgage — because the reverse mortgage removes your monthly payment.`
-      : `With the reverse mortgage, your projected net worth at age ${cmpLast.age} is ${usd(cmpLast.netWorthHecm)} — your home equity after the loan balance, plus the ${usd(inputs.initialCashDraw)} you take at closing invested — versus ${usd(cmpLast.netWorthNoHecm)} if you take no reverse mortgage. The difference reflects the loan's growth and costs, set against those invested proceeds.`,
+      : `With the reverse mortgage, your projected net worth at age ${cmpLast.age} is ${usd(cmpLast.netWorthHecm)} — your home equity after the loan balance, plus the ${usd(cmp.hecm.netCashDrawn)} you take at closing invested — versus ${usd(cmpLast.netWorthNoHecm)} if you take no reverse mortgage. The difference reflects the loan's growth and costs, set against those invested proceeds.`,
     equity: `At age ${r85.age} your home is projected at ${usd(r85.homeValue)} with a ${usd(r85.upb)} loan balance — leaving ${usd(r85.equity)} in equity for you or your heirs.`,
   };
 
