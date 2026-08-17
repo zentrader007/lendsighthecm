@@ -949,3 +949,137 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
   body { background: #fff; }
   .consumer-card, .consumer-chart-card, .consumer-explain { box-shadow: none; break-inside: avoid; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Print one-pager: a landscape letter sheet (10.5in × 8in inside 0.25in
+   margins ⇒ 1008 × 768 px at 96dpi). On screen it previews in a dark overlay;
+   in print, everything but the sheet is hidden.
+   ──────────────────────────────────────────────────────────────────────────── */
+.op-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 26, 46, 0.72);
+  overflow: auto;
+  padding: 56px 20px 40px;
+}
+.op-toolbar {
+  position: fixed;
+  top: 12px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 1001;
+}
+.op-sheet {
+  width: 1008px;
+  height: 768px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: var(--shadow-xl);
+  padding: 26px 30px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--font-sans);
+  color: var(--navy);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.op-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 2px solid var(--navy);
+  padding-bottom: 10px;
+}
+.op-brand {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.op-title { font-size: 26px; font-weight: 900; letter-spacing: -0.025em; line-height: 1.1; }
+.op-scenario { text-align: right; }
+.op-scenario-row { display: flex; gap: 16px; justify-content: flex-end; font-size: 12.5px; color: var(--muted); }
+.op-scenario-row strong { font-family: var(--font-mono); color: var(--navy); font-weight: 600; }
+.op-scenario-sub { margin-top: 4px; font-size: 10.5px; color: var(--muted); }
+
+.op-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.op-stat {
+  background: var(--secondary);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.op-stat-primary { background: rgba(91, 159, 91, 0.12); border-left: 2px solid var(--green); }
+.op-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.op-stat-primary .op-stat-label { color: #3f7a3f; }
+.op-stat-value { font-family: var(--font-mono); font-weight: 700; font-size: 23px; line-height: 1.15; }
+.op-stat-note { font-size: 10px; color: var(--muted); }
+
+.op-body { display: flex; gap: 14px; flex: 1; min-height: 0; }
+.op-charts { display: flex; flex-direction: column; gap: 8px; }
+.op-chart h4 { margin: 0 0 2px; font-size: 12px; font-weight: 800; letter-spacing: -0.01em; }
+
+.op-rail { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.op-panel {
+  background: var(--secondary);
+  border-radius: var(--radius-sm);
+  padding: 8px 13px 9px;
+}
+.op-panel-green { background: rgba(91, 159, 91, 0.12); border-left: 2px solid var(--green); }
+.op-panel-navy { background: rgba(27, 42, 74, 0.06); border-left: 2px solid var(--navy); }
+.op-panel-head {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.op-panel-green .op-panel-head { color: #3f7a3f; }
+.op-panel-navy .op-panel-head { color: var(--navy); }
+.op-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 1px 0;
+}
+.op-line strong { font-family: var(--font-mono); font-weight: 600; font-size: 12.5px; color: var(--navy); white-space: nowrap; }
+.op-panel-note { margin-top: 4px; font-size: 9.5px; line-height: 1.45; color: var(--muted); }
+
+.op-disclosure {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  font-size: 8.75px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.op-disclosure strong { color: var(--navy); }
+.op-prepared { font-family: var(--font-mono); color: var(--primary); }
+
+@media print {
+  @page { size: letter landscape; margin: 0.25in; }
+  body.op-print { background: #fff; }
+  body.op-print #root { display: none !important; }
+  .op-toolbar { display: none !important; }
+  .op-overlay { position: static; padding: 0; background: none; overflow: visible; }
+  .op-sheet { box-shadow: none; border-radius: 0; margin: 0; }
+}

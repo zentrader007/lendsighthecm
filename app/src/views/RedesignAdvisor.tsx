@@ -31,6 +31,9 @@ const MortgageComparisonChart = lazy(() =>
 const AvailableSpendingChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.AvailableSpendingChart })),
 );
+const PrintOnePager = lazy(() =>
+  import('../components/PrintOnePager').then((m) => ({ default: m.PrintOnePager })),
+);
 
 type StageView = 'loc' | 'spending' | 'networth' | 'equity' | 'invest' | 'seqrisk' | 'table';
 
@@ -58,6 +61,7 @@ export function RedesignAdvisor({
   goConsumer,
 }: AdvisorProps) {
   const [stage, setStage] = useState<StageView>('loc');
+  const [printOpen, setPrintOpen] = useState(false);
   const [targetAge, setTargetAge] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showSpendingBalance, setShowSpendingBalance] = useState(true);
@@ -257,11 +261,20 @@ export function RedesignAdvisor({
           <button className="view-toggle" onClick={goConsumer}>
             Consumer view
           </button>
+          <button className="view-toggle" onClick={() => setPrintOpen(true)}>
+            Print snapshot
+          </button>
           <button className="share-btn" onClick={share}>
             {copied ? '✓ Link copied' : 'Share with client'}
           </button>
         </div>
       </header>
+
+      {printOpen && (
+        <Suspense fallback={null}>
+          <PrintOnePager inp={inp} result={result} onClose={() => setPrintOpen(false)} />
+        </Suspense>
+      )}
 
       <div className="scenario-bar">
         <span className="scenario-label">Scenario</span>
