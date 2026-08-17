@@ -56,7 +56,7 @@ export function ProjectionTableEditable({
             <th>Investment <InfoTip text="The cash actually drawn at closing, if invested instead — compounding each year at the assumed (after-tax) return. Excludes any loan amount that pays off an existing lien (that's not cash in hand) and nets out out-of-pocket closing costs. Illustration only: in most cases you should not draw home equity to invest." /></th>
             <th>Invest + Equity <InfoTip text="Invested cash drawn plus remaining home equity — the 'Investment + Equity' line on the Invest comparison chart." /></th>
             <th>Tenure/Mo <InfoTip text="The monthly tenure payment the remaining credit could fund for life from that age." /></th>
-            <th>Accrual <InfoTip text="The annual rate (index + margin + MIP) applied to the balance and credit line that year." /></th>
+            <th>Accrual <InfoTip text="The annual rate applied to the balance and credit line that year: the expected rate (10yr CMT + margin) + MIP under the flat scenario, shocked ±2% under the stress scenarios, or the historical 1yr CMT + margin + MIP under the replay." /></th>
             <th>Deduction <InfoTip text="Interest paid that year that may be tax-deductible when the loan is repaid. Not tax advice." /></th>
           </tr>
         </thead>

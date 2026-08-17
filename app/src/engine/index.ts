@@ -32,14 +32,17 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   // --- Rates ---
   const expectedRate = MROUND(inp.cmt10yr + margin, 0.00125);
   const initialRate = MROUND(inp.cmt1yr + margin, 0.00125);
-  // Two distinct HUD rates: tenure/term PAYMENTS amortize at the expected rate
-  // + MIP (HUD uses the expected rate for payment plans), while the principal
-  // limit / LOC / balance GROW each month at the note (current) rate + MIP —
-  // HUD's monthly principal-limit growth rate (24 CFR 206.3). On a normal
-  // upward-sloping yield curve the note rate is below the expected rate, so
-  // growth is more conservative than the expected-rate projection.
+  // The projection compounds the principal limit / LOC / balance at the
+  // EXPECTED rate + MIP. The expected rate is HUD's estimate of the note rate
+  // averaged over the loan's life (it's what sets the PLF, and what HUD's
+  // required amortization schedule for adjustable HECMs projects at); the
+  // initial rate is only what accrues in the first year. This matches the
+  // industry illustration/origination tools (Quantum, REVERSE+) to within ~1%
+  // at every checkpoint. Growing at the initial rate — tried Jun-2026 — read as
+  // "more conservative" but understated the LOC/balance by ~17% over 25 years
+  // versus both tools. Tenure/term payments amortize at the same rate.
   const loanProjectedRate = expectedRate + annMip; // payment-plan amortization rate
-  const growthRate = initialRate + annMip; // monthly principal-limit growth rate
+  const growthRate = loanProjectedRate; // monthly LOC / balance growth rate
   const plf = lookupPLF(age, inp.cmt10yr, margin);
 
   // --- Costs ---

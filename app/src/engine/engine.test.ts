@@ -49,36 +49,37 @@ describe('Headline figures (Dashboard)', () => {
 describe('Projection (Advanced)', () => {
   const y = (n: number) => r.projection[n];
 
-  // Balance, LOC, and total PL grow monthly at the note rate + MIP (6.625%),
-  // matching HUD's principal-limit growth formula. Each value below also equals
-  // the closed-form start × (1 + 0.06625/12)^(12·year), an independent check of
-  // the iterative monthly loop. Home value still grows at 4% appreciation.
+  // Balance, LOC, and total PL grow monthly at the expected rate + MIP (7.25%)
+  // — the workbook's loanProjectedRate and the industry-tool convention
+  // (Quantum / REVERSE+). Each value below also equals the closed-form
+  // start × (1 + 0.0725/12)^(12·year), an independent check of the iterative
+  // monthly loop. Home value still grows at 4% appreciation.
   it('Year 1', () => {
     near(y(1).homeValue, 566800);
-    near(y(1).upb, 74407.03, 0.01);
-    near(y(1).availableLOC, 121802.13, 0.01);
-    near(y(1).equity, 492392.97, 0.01);
-    near(y(1).totalPL, 196209.16, 0.01);
+    near(y(1).upb, 74870.85, 0.01);
+    near(y(1).availableLOC, 122561.37, 0.01);
+    near(y(1).equity, 491929.15, 0.01);
+    near(y(1).totalPL, 197432.22, 0.01);
   });
 
   it('Year 10', () => {
     near(y(10).homeValue, 806733.14, 0.01);
-    near(y(10).upb, 134849.67, 0.01);
-    near(y(10).availableLOC, 220744.95, 0.01);
-    near(y(10).equity, 671883.46, 0.01);
-    near(y(10).totalPL, 355594.62, 0.01);
+    near(y(10).upb, 143495.17, 0.01);
+    near(y(10).availableLOC, 234897.37, 0.01);
+    near(y(10).equity, 663237.97, 0.01);
+    near(y(10).totalPL, 378392.54, 0.01);
   });
 
   it('Year 20', () => {
     near(y(20).homeValue, 1194162.11, 0.01);
-    near(y(20).upb, 261083.05, 0.01);
-    near(y(20).availableLOC, 427385.27, 0.01);
-    near(y(20).equity, 933079.06, 0.01);
-    near(y(20).totalPL, 688468.32, 0.01);
+    near(y(20).upb, 295633.37, 0.01);
+    near(y(20).availableLOC, 483943.12, 0.01);
+    near(y(20).equity, 898528.75, 0.01);
+    near(y(20).totalPL, 779576.48, 0.01);
   });
 
-  it('monthly loop matches closed-form note-rate compounding at year 20', () => {
-    const nr = 0.06625; // initialRate (6.125%) + annual MIP (0.5%)
+  it('monthly loop matches closed-form expected-rate compounding at year 20', () => {
+    const nr = 0.0725; // expectedRate (6.75%) + annual MIP (0.5%)
     const grow = (v: number, yr: number) => v * Math.pow(1 + nr / 12, 12 * yr);
     near(y(20).upb, grow(r.initialUPB, 20), 0.01);
     near(y(20).availableLOC, grow(r.remainingCredit, 20), 0.01);
@@ -280,28 +281,28 @@ describe('Off-grid margin (PLF grid snap)', () => {
 describe('Rate scenarios', () => {
   it('flat scenario reproduces the golden master exactly', () => {
     const flat = runSimulation({ ...goldenInputs, rateScenario: 'Flat (assumed)' });
-    near(flat.projection[20].upb, 261083.05, 0.01);
-    near(flat.projection[20].totalPL, 688468.32, 0.01);
+    near(flat.projection[20].upb, 295633.37, 0.01);
+    near(flat.projection[20].totalPL, 779576.48, 0.01);
   });
 
-  it('+2% shock accrues balance, LOC, and total PL at 8.625%', () => {
-    // Shocks now build off the note growth rate (6.625%), not the expected rate.
+  it('+2% shock accrues balance, LOC, and total PL at 9.25%', () => {
+    // Shocks build off the expected-rate growth basis (7.25%).
     const up = runSimulation({ ...goldenInputs, rateScenario: 'Rates +2%' });
     const y1 = up.projection[1];
-    expect(y1.accrualRate).toBeCloseTo(0.08625, 10);
-    near(y1.upb, FV(0.08625 / 12, 12, 0, -69650), 0.01);
-    near(y1.totalPL, -FV(0.08625 / 12, 12, 0, 183665.45), 1);
+    expect(y1.accrualRate).toBeCloseTo(0.0925, 10);
+    near(y1.upb, FV(0.0925 / 12, 12, 0, -69650), 0.01);
+    near(y1.totalPL, -FV(0.0925 / 12, 12, 0, 183665.45), 1);
   });
 
-  it('-2% shock accrues at 4.625%', () => {
+  it('-2% shock accrues at 5.25%', () => {
     const down = runSimulation({ ...goldenInputs, rateScenario: 'Rates -2%' });
-    expect(down.projection[1].accrualRate).toBeCloseTo(0.04625, 10);
+    expect(down.projection[1].accrualRate).toBeCloseTo(0.0525, 10);
   });
 
   it('-2% shock floors at margin + MIP when the index would go negative', () => {
-    // Growth keys off the 1yr (note) index now, so drive it low via cmt1yr.
-    const low = runSimulation({ ...goldenInputs, cmt1yr: 0.005, rateScenario: 'Rates -2%' });
-    // note rate = 0.5% + 2.375% = 2.875%; +MIP = 3.375%; −2% would be 1.375%,
+    // Growth keys off the 10yr (expected) index, so drive it low via cmt10yr.
+    const low = runSimulation({ ...goldenInputs, cmt10yr: 0.005, rateScenario: 'Rates -2%' });
+    // expected rate = 0.5% + 2.375% = 2.875%; +MIP = 3.375%; −2% would be 1.375%,
     // below the 2.875% margin+MIP floor.
     expect(low.projection[1].accrualRate).toBeCloseTo(0.02875, 10);
   });
@@ -312,6 +313,54 @@ describe('Rate scenarios', () => {
     expect(replay.projection[1].accrualRate).toBeCloseTo(0.0645356 + 0.02875, 8);
     // 1987 = 6.77148%
     expect(replay.projection[2].accrualRate).toBeCloseTo(0.0677148 + 0.02875, 8);
+  });
+});
+
+describe('Industry-tool benchmark (Quantum origination software + REVERSE+)', () => {
+  // Three-tool comparison (Aug 2026): 70yo, home at/above the HECM limit, $100k
+  // initial draw, margin 2.25%, 1yr CMT 4.00%, 10yr CMT 4.72%, costs financed
+  // (MIP + $6k orig + $3,400 other). Quantum and REVERSE+ agree with each other
+  // within ~1–2% at every checkpoint; the engine must land in that band. It
+  // does so only when the LOC/balance compound at the EXPECTED rate + MIP —
+  // growing at the initial rate understated both by ~17% at age 95.
+  const scen = {
+    ...defaultInputs,
+    age: 70,
+    homeValue: 1_300_000,
+    initialCashDraw: 100_000,
+    existingLiens: 0,
+    cmt1yr: 0.04,
+    cmt10yr: 0.0472,
+    margin: 0.0225,
+    costsInLoan: true,
+    costs: { ...defaultCosts, counselingCost: 0, appraisalPOC: 0, other: 3400 },
+    projectionYears: 30,
+    rateScenario: 'Flat (assumed)' as const,
+  };
+  const res = runSimulation(scen);
+  const at = (age: number) => res.projection.find((p) => p.age === age)!;
+  // Tolerance: the two tools themselves differ by up to ~1%, and the year-0
+  // principal limit differs from theirs by ~1.5% (PLF/cost inputs), so allow
+  // 2.5% on the growth checkpoints.
+  const within = (actual: number, ref: number, pctTol: number) =>
+    expect(Math.abs(actual - ref) / ref).toBeLessThanOrEqual(pctTol);
+
+  it('rates: expected 7.00%, initial 6.25%, growth at expected + MIP = 7.50%', () => {
+    expect(res.expectedRate).toBeCloseTo(0.07, 10);
+    expect(res.initialRate).toBeCloseTo(0.0625, 10);
+    expect(res.projection[1].accrualRate).toBeCloseTo(0.075, 10);
+  });
+
+  it('LOC tracks Quantum ($1,003,464 @85, $2,093,214 @95) and REVERSE+ ($1,010,290, $2,114,798)', () => {
+    within(at(75).availableLOC, 481_050, 0.025);
+    within(at(85).availableLOC, 1_003_464, 0.025);
+    within(at(95).availableLOC, 2_093_214, 0.025);
+  });
+
+  it('balance tracks REVERSE+ ($195,077 @75, $408,346 @85, $854,774 @95)', () => {
+    within(at(75).upb, 195_077, 0.025);
+    within(at(85).upb, 408_346, 0.025);
+    within(at(95).upb, 854_774, 0.025);
   });
 });
 
@@ -327,23 +376,23 @@ describe('Standby LOC strategy (ChatGPT case study: 62yo, $800k home, 3% apprec.
     costs: { ...defaultCosts, counselingCost: 0, appraisalPOC: 0, other: 3400 },
   };
 
-  it('costs paid in cash: LOC compounds monthly to ~$966k at year 20, balance $0', () => {
-    // Growth at the note rate (6.625%) rather than the expected rate (7.25%).
+  it('costs paid in cash: LOC compounds monthly to ~$1.09M at year 20, balance $0', () => {
+    // Growth at the expected rate + MIP (7.25%).
     const res = runSimulation({ ...caseStudy, costsInLoan: false });
     const y20 = res.projection[20];
     near(res.principalLimit, 257600);
     near(y20.homeValue, 1444889, 1);
-    near(y20.availableLOC, 965614, 1);
+    near(y20.availableLOC, 1093398, 1);
     near(y20.upb, 0, 0.01);
-    near(y20.accessibleResources, 2410503, 1);
+    near(y20.accessibleResources, 2538287, 1);
   });
 
-  it('costs financed: the $25,400 grows to a ~$95k balance that shrinks LOC and equity', () => {
+  it('costs financed: the $25,400 grows to a ~$108k balance that shrinks LOC and equity', () => {
     const res = runSimulation({ ...caseStudy, costsInLoan: true });
     const y20 = res.projection[20];
-    near(y20.upb, 95212, 1);
-    near(y20.availableLOC, 870402, 1);
-    near(y20.equity, 1349677, 1);
+    near(y20.upb, 107812, 1);
+    near(y20.availableLOC, 985586, 1);
+    near(y20.equity, 1337077, 1);
     // nothing paid out of pocket → no POC drag; net worth equals equity
     expect(y20.pocDrag).toBe(0);
     near(y20.rmNetWorth, y20.equity, 0.01);

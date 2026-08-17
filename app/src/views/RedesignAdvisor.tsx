@@ -355,8 +355,8 @@ export function RedesignAdvisor({
 
       <div className="stat-strip">
         <Stat label="PLF" value={pct(result.plf, 3)} tip="Principal Limit Factor — the percentage of the home's value (set by HUD from the borrower's age and the expected rate) that can be borrowed." />
-        <Stat label="Expected rate" value={pct(result.expectedRate, 3)} tip="The 10-year CMT index plus the lender margin, rounded to the nearest 0.125%. This sets the PLF." />
-        <Stat label="Initial rate" value={pct(result.initialRate, 3)} tip="The 1-year CMT index plus the lender margin — the actual interest rate charged in year one." />
+        <Stat label="Expected rate" value={pct(result.expectedRate, 3)} tip="The 10-year CMT index plus the lender margin, rounded to the nearest 0.125%. HUD's estimate of the loan's average rate over its life: it sets the PLF, and (plus MIP) it is the rate the balance and credit line are projected to grow at — the same convention as industry origination tools." />
+        <Stat label="Initial rate" value={pct(result.initialRate, 3)} tip="The 1-year CMT index plus the lender margin — the actual interest rate charged in year one. Shown for reference; the long-run projection uses the expected rate." />
         <Stat label="LOC start" value={usd(result.remainingCredit)} tip="Funds still available after the initial draw and costs — the starting line of credit, which grows over time." />
         <Stat label="Initial UPB" value={usd(result.initialUPB)} tip="Initial unpaid principal balance — the starting loan balance, including financed costs, liens paid off, and any initial cash draw." />
         <Stat label="Initial MIP" value={usd(result.initialMIP)} tip="Up-front FHA Mortgage Insurance Premium — 2% of the home's value (up to the HECM limit), paid at closing." />
@@ -601,7 +601,7 @@ export function RedesignAdvisor({
           <NumberField label="1yr CMT (Initial idx)" value={inp.cmt1yr} onChange={(v) => set('cmt1yr', v)} asPercent min={0} max={20} tip="The 1-year Constant Maturity Treasury rate — the index for the year-one interest rate. Auto-filled live from the U.S. Treasury daily yield curve on load; you can still type over it." />
           <NumberField label="Margin" value={inp.margin} onChange={(v) => set('margin', v)} asPercent min={0} max={10} tip="The lender's margin, added to the index to determine the interest rate." />
           <NumberField label="Annual MIP" value={inp.annualMIP} onChange={(v) => set('annualMIP', v)} asPercent min={0} max={5} tip="The ongoing FHA Mortgage Insurance Premium rate charged each year on the loan balance (currently 0.5%)." />
-          <SelectField label="Rate Scenario" value={inp.rateScenario} options={RATE_SCENARIOS} onChange={(v) => set('rateScenario', v)} tip="Stress-test how the balance, credit line, and total principal limit grow: flat at the projected rate, shocked up or down 2%, or replaying actual 1-year CMT rates from 1986 forward." />
+          <SelectField label="Rate Scenario" value={inp.rateScenario} options={RATE_SCENARIOS} onChange={(v) => set('rateScenario', v)} tip="Stress-test how the balance, credit line, and total principal limit grow: flat at the expected rate + MIP, shocked up or down 2% from it, or replaying actual 1-year CMT rates from 1986 forward." />
         </Section>
 
         <Section title="Investment Comparison">
