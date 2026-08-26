@@ -746,6 +746,8 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
 .plan-btn-ghost { background: #fff; color: var(--primary); }
 .plan-btn-ghost:hover { background: rgba(74, 124, 155, 0.12); }
 .plan-hint { flex-basis: 100%; text-align: center; font-size: 12px; color: var(--muted); }
+.appr-status { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.sc-input-pct { text-align: right; }
 
 /* Target-age control, flowing inline in the stat strip (to the right of the
    last stat) rather than on its own row. */

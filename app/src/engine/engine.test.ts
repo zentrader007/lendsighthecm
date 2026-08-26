@@ -224,6 +224,38 @@ describe('Guardrails', () => {
   });
 });
 
+describe('Per-year appreciation series', () => {
+  it('null appreciations behaves exactly like the flat rate', () => {
+    const flat = runSimulation({ ...goldenInputs, appreciation: 0.03, appreciations: null });
+    const filled = runSimulation({
+      ...goldenInputs,
+      appreciation: 0.03,
+      appreciations: Array(38).fill(0.03),
+    });
+    for (let n = 1; n <= 20; n++) near(filled.projection[n].homeValue, flat.projection[n].homeValue, 0.01);
+  });
+
+  it('uses the per-year rate for each year’s home-price growth', () => {
+    // 10% in year 1, then 0% forever: home jumps once and holds.
+    const series = Array(38).fill(0);
+    series[0] = 0.1;
+    const r = runSimulation({ ...goldenInputs, homeValue: 500_000, appreciation: 0.03, appreciations: series });
+    near(r.projection[1].homeValue, 550_000, 0.01); // 500k × 1.10
+    near(r.projection[2].homeValue, 550_000, 0.01); // × 1.00
+    near(r.projection[5].homeValue, 550_000, 0.01);
+    // The row carries the rate actually used, for the Year table to display.
+    near(r.projection[1].appreciation!, 0.1, 1e-9);
+    near(r.projection[2].appreciation!, 0, 1e-9);
+  });
+
+  it('a falling glide compounds each year’s distinct rate', () => {
+    const series = [0.04, 0.03, 0.02]; // years 1–3, rest 0
+    const full = Array.from({ length: 38 }, (_, i) => series[i] ?? 0);
+    const r = runSimulation({ ...goldenInputs, homeValue: 100_000, appreciations: full });
+    near(r.projection[3].homeValue, 100_000 * 1.04 * 1.03 * 1.02, 0.5);
+  });
+});
+
 describe('Principal limit override', () => {
   it('0 (default) computes from the PLF table', () => {
     expect(defaultInputs.principalLimitOverride).toBe(0);

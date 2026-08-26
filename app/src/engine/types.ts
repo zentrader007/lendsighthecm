@@ -39,7 +39,16 @@ export interface SimulationInputs {
   // Client & property (Dashboard)
   age: number;
   homeValue: number;
-  appreciation: number; // assumed annual appreciation, e.g. 0.03
+  appreciation: number; // assumed annual appreciation (the flat base), e.g. 0.03
+  /**
+   * Optional per-year appreciation (index 0 = year 1). When null (the default),
+   * the flat `appreciation` above is used for every year. When set (a 38-length
+   * array), the engine uses appreciations[n-1] for each year's home-price
+   * growth — so a COI can model a rising/falling glide or hand-set specific
+   * years. Populated by the appreciation-trend generator and the editable
+   * Appreciation % column in the Year table.
+   */
+  appreciations: number[] | null;
 
   // Liens & draws
   existingLiens: number; // mandatory obligations

@@ -60,6 +60,11 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
     age: numOr(inp.age, defaultInputs.age),
     homeValue: numOr(inp.homeValue, defaultInputs.homeValue),
     appreciation: numOr(inp.appreciation, defaultInputs.appreciation),
+    // Per-year appreciation: a 38-length numeric array, or null to use the flat
+    // rate. Anything malformed degrades to null (flat).
+    appreciations: Array.isArray(inp.appreciations)
+      ? Array.from({ length: 38 }, (_, i) => numOr(inp.appreciations![i], defaultInputs.appreciation))
+      : null,
     existingLiens: numOr(inp.existingLiens, defaultInputs.existingLiens),
     initialCashDraw: numOr(inp.initialCashDraw, defaultInputs.initialCashDraw),
     cmt10yr: numOr(inp.cmt10yr, defaultInputs.cmt10yr),

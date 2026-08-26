@@ -29,6 +29,7 @@ export const defaultInputs: SimulationInputs = {
   age: 64,
   homeValue: 545000,
   appreciation: 0.03,
+  appreciations: null, // null = use the flat rate above for every year
   existingLiens: 0,
   initialCashDraw: 50000,
   costsInLoan: true,

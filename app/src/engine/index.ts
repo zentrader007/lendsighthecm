@@ -157,7 +157,9 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
       if (firstCappedDrawYear === null) firstCappedDrawYear = n;
     }
 
-    const appreciation = inp.appreciation;
+    // Per-year appreciation when a series is set (a COI's rising/falling glide
+    // or hand-set years), else the flat assumed rate.
+    const appreciation = inp.appreciations?.[n - 1] ?? inp.appreciation;
 
     const homeVal = prev.homeValue * (1 + appreciation);
     const effHome = prev.effectiveHomeValue * (1 + appreciation);

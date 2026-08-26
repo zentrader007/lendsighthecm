@@ -6,6 +6,7 @@ import { runMortgageComparison } from '../engine/comparison';
 import { runAvailableSpending } from '../engine/spending';
 import { fetchLiveCMT } from '../lib/cmt';
 import { buildLevelDraws } from '../lib/drawPlan';
+import { buildAppreciationTrend } from '../lib/appreciationTrend';
 import { NumberField, SelectField, ToggleField } from '../components/Field';
 import { InfoTip } from '../components/InfoTip';
 import { ProjectionTableEditable } from '../components/ProjectionTableEditable';
@@ -37,6 +38,9 @@ const PrintOnePager = lazy(() =>
 );
 
 type StageView = 'loc' | 'spending' | 'networth' | 'equity' | 'invest' | 'seqrisk' | 'table';
+
+const APPR_TRENDS = ['Flat', 'Rising', 'Falling'] as const;
+type ApprTrendLabel = (typeof APPR_TRENDS)[number];
 
 const STAGE_TABS: readonly { key: StageView; label: string }[] = [
   { key: 'loc', label: 'Credit line growth' },
@@ -72,6 +76,10 @@ export function RedesignAdvisor({
   const [drawPlanMo, setDrawPlanMo] = useState(2000);
   const [drawPlanStartAge, setDrawPlanStartAge] = useState(() => Math.round(inp.age) + 1);
   const [drawPlanYears, setDrawPlanYears] = useState(10);
+  // Appreciation-trend generator (local UI): seeds the per-year appreciation
+  // series, which then lives in inp.appreciations and is editable per year.
+  const [apprTrend, setApprTrend] = useState<ApprTrendLabel>('Flat');
+  const [apprStep, setApprStep] = useState(0.0025);
   const [live, setLive] = useState<{ status: 'idle' | 'loading' | 'ok' | 'error'; asOf?: string }>({
     status: 'idle',
   });
@@ -109,6 +117,18 @@ export function RedesignAdvisor({
   const applyDrawPlan = () =>
     set('draws', buildLevelDraws(drawPlanMo, drawPlanStartAge, inp.age, drawPlanYears));
   const clearDrawPlan = () => set('draws', Array(38).fill(0));
+
+  // Write the appreciation trend into the per-year series (Flat with the button
+  // just materializes the flat base so it shows in the Year table column).
+  const applyApprTrend = () =>
+    set(
+      'appreciations',
+      buildAppreciationTrend(
+        inp.appreciation,
+        apprStep,
+        apprTrend.toLowerCase() as 'flat' | 'rising' | 'falling',
+      ),
+    );
 
   // Nearest projection row at/after a target age (falls back to the last row).
   const rowAt = (age: number) => {
@@ -427,7 +447,10 @@ export function RedesignAdvisor({
             projection={result.projection}
             draws={inp.draws}
             payments={inp.payments}
+            appreciations={inp.appreciations}
+            baseAppreciation={inp.appreciation}
             onChange={(draws, payments) => setInp((p) => ({ ...p, draws, payments }))}
+            onAppreciationChange={(appreciations) => set('appreciations', appreciations)}
             highlightAge={markerAge}
           />
         ) : (
@@ -628,7 +651,20 @@ export function RedesignAdvisor({
         </div>
 
         <Section title="Appreciation">
-          <NumberField label="Assumed Appreciation" value={inp.appreciation} onChange={(v) => set('appreciation', v)} asPercent min={-20} max={20} tip="Annual home-price growth rate used to project future value." />
+          <NumberField label="Assumed Appreciation" value={inp.appreciation} onChange={(v) => set('appreciation', v)} asPercent min={-20} max={20} tip="Annual home-price growth rate — the flat base for the projection, and the starting point for a rising/falling trend." />
+          <SelectField label="Trend" value={apprTrend} options={APPR_TRENDS} onChange={setApprTrend} tip="Model home prices staying flat, rising, or falling year over year — an FA's or realtor's expert view. Rising/Falling glides from the assumed rate by the step below each year. Click Apply to write the per-year series into the Year table (editable there)." />
+          {apprTrend !== 'Flat' && (
+            <NumberField label="Step / yr" value={apprStep} onChange={setApprStep} asPercent min={0} max={5} maxDecimals={2} tip="How much the appreciation changes each year (e.g. 0.25%)." />
+          )}
+          <button className="plan-btn" onClick={applyApprTrend}>Apply trend to Year table</button>
+          <button className="plan-btn plan-btn-ghost" onClick={() => set('appreciations', null)}>
+            Reset to flat
+          </button>
+          <p className="appr-status">
+            {inp.appreciations
+              ? `Per-year appreciation is active — edit any year in the Year table, or Reset to use the flat ${pct(inp.appreciation, 2)}.`
+              : `Flat ${pct(inp.appreciation, 2)} every year. Choose a trend and Apply, or edit the Apprec. % column in the Year table, to vary it.`}
+          </p>
         </Section>
 
         <Section title="Rates">

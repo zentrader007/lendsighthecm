@@ -1,23 +1,30 @@
 import type { ProjectionRow } from '../engine';
 import { usd, pct } from '../format';
-import { ScheduleCell } from './ScheduleCell';
+import { ScheduleCell, PercentCell } from './ScheduleCell';
 import { InfoTip } from './InfoTip';
 
 /**
- * Projection table with Draws / Payments as editable cells (years 1..N), so
- * schedule changes are made right where their effect is visible.
+ * Projection table with Draws / Payments / Appreciation % as editable cells
+ * (years 1..N), so schedule and assumption changes are made right where their
+ * effect is visible.
  */
 export function ProjectionTableEditable({
   projection,
   draws,
   payments,
+  appreciations,
+  baseAppreciation,
   onChange,
+  onAppreciationChange,
   highlightAge,
 }: {
   projection: ProjectionRow[];
   draws: number[];
   payments: number[];
+  appreciations: number[] | null;
+  baseAppreciation: number;
   onChange: (draws: number[], payments: number[]) => void;
+  onAppreciationChange: (next: number[]) => void;
   highlightAge?: number;
 }) {
   // The row to highlight is the first at/after the target age (matching how the
@@ -39,6 +46,13 @@ export function ProjectionTableEditable({
     next[i] = v;
     onChange(draws, next);
   };
+  // On first edit, materialize the full series from the flat base so the whole
+  // column is a real per-year array from then on.
+  const setAppreciation = (i: number, v: number) => {
+    const next = (appreciations ?? Array(38).fill(baseAppreciation)).slice();
+    next[i] = v;
+    onAppreciationChange(next);
+  };
 
   return (
     <div className="table-wrap">
@@ -52,7 +66,8 @@ export function ProjectionTableEditable({
             <th>Available LOC <InfoTip text="Unused line of credit remaining that year. It grows at the loan rate until drawn." /></th>
             <th>Loan Balance <InfoTip text="Unpaid principal balance — financed costs, liens, and any draws, plus accrued interest and MIP." /></th>
             <th>Home Equity <InfoTip text="Projected home value minus the loan balance — the equity remaining to the owner or heirs." /></th>
-            <th>Home Value <InfoTip text="Projected home value, grown each year at the assumed appreciation rate." /></th>
+            <th>Apprec. % <InfoTip text="The home-price appreciation applied that year. Editable per year — set an FA's or realtor's expert view, or a rising/falling glide. Defaults to the Assumed Appreciation rate until changed." /></th>
+            <th>Home Value <InfoTip text="Projected home value, grown each year at that year's appreciation rate." /></th>
             <th>Investment <InfoTip text="The cash actually drawn at closing, if invested instead — compounding each year at the assumed (after-tax) return. Excludes any loan amount that pays off an existing lien (that's not cash in hand) and nets out out-of-pocket closing costs. Illustration only: in most cases you should not draw home equity to invest." /></th>
             <th>Invest + Equity <InfoTip text="Invested cash drawn plus remaining home equity — the 'Investment + Equity' line on the Invest comparison chart." /></th>
             <th>Tenure/Mo <InfoTip text="The monthly tenure payment the remaining credit could fund for life from that age." /></th>
@@ -88,6 +103,16 @@ export function ProjectionTableEditable({
               <td>{usd(r.availableLOC)}</td>
               <td>{usd(r.upb)}</td>
               <td>{usd(r.equity)}</td>
+              <td>
+                {r.year === 0 ? (
+                  'N/A'
+                ) : (
+                  <PercentCell
+                    value={appreciations?.[r.year - 1] ?? baseAppreciation}
+                    onCommit={(v) => setAppreciation(r.year - 1, v)}
+                  />
+                )}
+              </td>
               <td>{usd(r.homeValue)}</td>
               <td>{usd(r.investment)}</td>
               <td>{usd(r.investmentPlusEquity)}</td>
