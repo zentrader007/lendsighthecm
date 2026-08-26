@@ -108,6 +108,7 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     appreciation: null,
     upb: initialUPB,
     accrualRate: null,
+    accrualIndex: null,
     availableLOC: loc0,
     upbPrincipalBal: initialUPB - initialMIP,
     upbInterestBal: 0,
@@ -173,7 +174,15 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
           ? Math.max(margin + annMip, growthRate - 0.02)
           : inp.rateScenario === 'Replay 1986-2024'
             ? hist1yrCMTForward(n) + margin + annMip
-            : growthRate;
+            : inp.rateScenario === 'Custom (per-year)'
+              ? // User-set index for this year (falls back to the expected-rate
+                // index, which reproduces the Flat scenario). Rounded to 1/8%
+                // like the expected rate, floored at margin + MIP.
+                Math.max(
+                  margin + annMip,
+                  MROUND((inp.indexRates?.[n - 1] ?? inp.cmt10yr) + margin, 0.00125) + annMip,
+                )
+              : growthRate;
 
     const upb = FV(accrualRate / 12, 12, 0, -(prev.upb + draw - payment));
     // Floored at 0: the draw cap above already prevents a real overdraw, but a
@@ -254,6 +263,9 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
       appreciation,
       upb,
       accrualRate,
+      // Back out the index driving this year's accrual, so the editable Index %
+      // column stays consistent with the Accrual column under every scenario.
+      accrualIndex: accrualRate - margin - annMip,
       availableLOC,
       upbPrincipalBal,
       upbInterestBal,

@@ -8,7 +8,8 @@ export type RateScenario =
   | 'Flat (assumed)'
   | 'Rates +2%'
   | 'Rates -2%'
-  | 'Replay 1986-2024';
+  | 'Replay 1986-2024'
+  | 'Custom (per-year)';
 
 export interface CostInputs {
   counselingCost: number; // POC
@@ -66,6 +67,15 @@ export interface SimulationInputs {
   cmt1yr: number; // 1yr CMT index / initial-rate index
   margin: number;
   rateScenario: RateScenario;
+  /**
+   * Optional per-year accrual index (index 0 = year 1). Only used under the
+   * 'Custom (per-year)' scenario; null (the default) elsewhere. Each value is
+   * the index (e.g. CMT) for that year — the accrual becomes
+   * MROUND(index + margin, 1/8%) + MIP — so a COI can model rates rising/falling
+   * or hand-set specific years. Populated by the rate-trend generator and the
+   * editable Index % column in the Year table.
+   */
+  indexRates: number[] | null;
 
   // Limits & MIP (Advanced)
   hecmLimit: number;
@@ -122,6 +132,10 @@ export interface ProjectionRow {
   appreciation: number | null;
   upb: number; // loan balance (M)
   accrualRate: number | null;
+  /** The index driving accrual that year (accrualRate − margin − MIP), backed
+   *  out so the editable Index % column is consistent with the Accrual column
+   *  under every scenario. null for year 0. */
+  accrualIndex: number | null;
   availableLOC: number; // O
   upbPrincipalBal: number; // U
   upbInterestBal: number; // V

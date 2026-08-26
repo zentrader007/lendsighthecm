@@ -224,6 +224,53 @@ describe('Guardrails', () => {
   });
 });
 
+describe('Custom (per-year) rate scenario', () => {
+  const flat = runSimulation({ ...goldenInputs, rateScenario: 'Flat (assumed)' });
+
+  it('the backed-out accrual index equals accrualRate − margin − MIP', () => {
+    const y = flat.projection[5];
+    near(y.accrualIndex!, y.accrualRate! - goldenInputs.margin - goldenInputs.annualMIP, 1e-9);
+  });
+
+  it('a flat custom index at the 10yr CMT reproduces the Flat scenario exactly', () => {
+    const custom = runSimulation({
+      ...goldenInputs,
+      rateScenario: 'Custom (per-year)',
+      indexRates: Array(38).fill(goldenInputs.cmt10yr),
+    });
+    for (let n = 1; n <= 20; n++) {
+      near(custom.projection[n].accrualRate!, flat.projection[n].accrualRate!, 1e-9);
+      near(custom.projection[n].upb, flat.projection[n].upb, 0.01);
+      near(custom.projection[n].availableLOC, flat.projection[n].availableLOC, 0.01);
+    }
+  });
+
+  it('null indexRates under Custom also reproduces Flat (falls back to the 10yr CMT)', () => {
+    const custom = runSimulation({ ...goldenInputs, rateScenario: 'Custom (per-year)', indexRates: null });
+    near(custom.projection[10].upb, flat.projection[10].upb, 0.01);
+  });
+
+  it('a rising index raises the accrual rate and the balance year over year', () => {
+    const series = Array.from({ length: 38 }, (_, i) => goldenInputs.cmt10yr + 0.0025 * i);
+    const rising = runSimulation({ ...goldenInputs, rateScenario: 'Custom (per-year)', indexRates: series });
+    // Year 1 matches Flat (same index); later years accrue faster.
+    near(rising.projection[1].accrualRate!, flat.projection[1].accrualRate!, 1e-9);
+    expect(rising.projection[10].accrualRate!).toBeGreaterThan(flat.projection[10].accrualRate!);
+    expect(rising.projection[20].upb).toBeGreaterThan(flat.projection[20].upb);
+    // The index column reflects the set path (rounded to 1/8% via the accrual).
+    expect(rising.projection[10].accrualIndex!).toBeGreaterThan(rising.projection[1].accrualIndex!);
+  });
+
+  it('floors the accrual at margin + MIP when the index is driven to zero', () => {
+    const custom = runSimulation({
+      ...goldenInputs,
+      rateScenario: 'Custom (per-year)',
+      indexRates: Array(38).fill(0),
+    });
+    near(custom.projection[1].accrualRate!, goldenInputs.margin + goldenInputs.annualMIP, 1e-9);
+  });
+});
+
 describe('Per-year appreciation series', () => {
   it('null appreciations behaves exactly like the flat rate', () => {
     const flat = runSimulation({ ...goldenInputs, appreciation: 0.03, appreciations: null });

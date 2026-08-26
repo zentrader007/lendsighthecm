@@ -6,7 +6,7 @@ import { runMortgageComparison } from '../engine/comparison';
 import { runAvailableSpending } from '../engine/spending';
 import { fetchLiveCMT } from '../lib/cmt';
 import { buildLevelDraws } from '../lib/drawPlan';
-import { buildAppreciationTrend } from '../lib/appreciationTrend';
+import { buildAppreciationTrend, buildTrendSeries } from '../lib/appreciationTrend';
 import { NumberField, SelectField, ToggleField } from '../components/Field';
 import { InfoTip } from '../components/InfoTip';
 import { ProjectionTableEditable } from '../components/ProjectionTableEditable';
@@ -80,6 +80,10 @@ export function RedesignAdvisor({
   // series, which then lives in inp.appreciations and is editable per year.
   const [apprTrend, setApprTrend] = useState<ApprTrendLabel>('Flat');
   const [apprStep, setApprStep] = useState(0.0025);
+  // Rate-index-trend generator (local UI): seeds the per-year accrual index and
+  // switches the scenario to Custom.
+  const [rateTrend, setRateTrend] = useState<ApprTrendLabel>('Rising');
+  const [rateStep, setRateStep] = useState(0.0025);
   const [live, setLive] = useState<{ status: 'idle' | 'loading' | 'ok' | 'error'; asOf?: string }>({
     status: 'idle',
   });
@@ -129,6 +133,28 @@ export function RedesignAdvisor({
         apprTrend.toLowerCase() as 'flat' | 'rising' | 'falling',
       ),
     );
+
+  // The per-year accrual index for the current scenario, backed out of each
+  // row — the seed the Year table's Index % column and the trend materialize
+  // from, so switching to Custom starts where the active scenario was.
+  const baseIndexSeries = Array.from(
+    { length: 38 },
+    (_, i) => result.projection[i + 1]?.accrualIndex ?? inp.cmt10yr,
+  );
+  // Apply a rate-index trend: seed the series (from today's 10yr CMT) AND switch
+  // the scenario to Custom so it takes effect; Reset returns to Flat.
+  const applyRateTrend = () =>
+    setInp((p) => ({
+      ...p,
+      indexRates: buildTrendSeries(
+        p.cmt10yr,
+        rateStep,
+        rateTrend.toLowerCase() as 'flat' | 'rising' | 'falling',
+      ),
+      rateScenario: 'Custom (per-year)',
+    }));
+  const resetRateTrend = () =>
+    setInp((p) => ({ ...p, indexRates: null, rateScenario: 'Flat (assumed)' }));
 
   // Nearest projection row at/after a target age (falls back to the last row).
   const rowAt = (age: number) => {
@@ -449,8 +475,13 @@ export function RedesignAdvisor({
             payments={inp.payments}
             appreciations={inp.appreciations}
             baseAppreciation={inp.appreciation}
+            indexRates={inp.indexRates}
+            baseIndexSeries={baseIndexSeries}
             onChange={(draws, payments) => setInp((p) => ({ ...p, draws, payments }))}
             onAppreciationChange={(appreciations) => set('appreciations', appreciations)}
+            onIndexChange={(indexRates) =>
+              setInp((p) => ({ ...p, indexRates, rateScenario: 'Custom (per-year)' }))
+            }
             highlightAge={markerAge}
           />
         ) : (
@@ -692,7 +723,20 @@ export function RedesignAdvisor({
           <NumberField label="1yr CMT (Initial idx)" value={inp.cmt1yr} onChange={(v) => set('cmt1yr', v)} asPercent min={0} max={20} tip="The 1-year Constant Maturity Treasury rate — the index for the year-one interest rate. Auto-filled live from the U.S. Treasury daily yield curve on load; you can still type over it." />
           <NumberField label="Margin" value={inp.margin} onChange={(v) => set('margin', v)} asPercent min={0} max={10} tip="The lender's margin, added to the index to determine the interest rate." />
           <NumberField label="Annual MIP" value={inp.annualMIP} onChange={(v) => set('annualMIP', v)} asPercent min={0} max={5} tip="The ongoing FHA Mortgage Insurance Premium rate charged each year on the loan balance (currently 0.5%)." />
-          <SelectField label="Rate Scenario" value={inp.rateScenario} options={RATE_SCENARIOS} onChange={(v) => set('rateScenario', v)} tip="Stress-test how the balance, credit line, and total principal limit grow: flat at the expected rate + MIP, shocked up or down 2% from it, or replaying actual 1-year CMT rates from 1986 forward." />
+          <SelectField label="Rate Scenario" value={inp.rateScenario} options={RATE_SCENARIOS} onChange={(v) => set('rateScenario', v)} tip="How the balance, credit line, and principal limit grow: flat at the expected rate + MIP, shocked ±2% from it, replaying actual 1-year CMT rates from 1986 forward, or Custom (per-year) — your own index path, set by the trend below or the editable Index % column in the Year table." />
+          <SelectField label="Rate trend" value={rateTrend} options={APPR_TRENDS} onChange={setRateTrend} tip="Model where rates are heading — an FA's view. Rising/Falling glides the index from today's 10yr CMT by the step below each year. Apply writes the per-year index series into the Year table (editable there) and switches the Rate Scenario to Custom." />
+          {rateTrend !== 'Flat' && (
+            <NumberField label="Step / yr" value={rateStep} onChange={setRateStep} asPercent min={0} max={5} maxDecimals={2} tip="How much the index changes each year (e.g. 0.25%)." />
+          )}
+          <button className="plan-btn" onClick={applyRateTrend}>Apply rate trend</button>
+          <button className="plan-btn plan-btn-ghost" onClick={resetRateTrend}>
+            Reset to flat
+          </button>
+          <p className="appr-status">
+            {inp.rateScenario === 'Custom (per-year)'
+              ? `Custom per-year rates are active — edit any year's Index % in the Year table, or Reset to the flat expected rate.`
+              : `Rate Scenario: ${inp.rateScenario}. Apply a trend or edit the Index % column in the Year table to set a custom per-year path.`}
+          </p>
         </Section>
 
         <Section title="Investment Comparison">

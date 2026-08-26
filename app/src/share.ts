@@ -37,7 +37,13 @@ const numOr = (v: unknown, fallback: number): number => {
 // The two string enums need whitelisting too — otherwise a stale or hand-crafted
 // link could carry an unknown value straight into the <select>, showing a bogus
 // option even though the engine would silently fall back.
-const RATE_SCENARIOS = ['Flat (assumed)', 'Rates +2%', 'Rates -2%', 'Replay 1986-2024'] as const;
+const RATE_SCENARIOS = [
+  'Flat (assumed)',
+  'Rates +2%',
+  'Rates -2%',
+  'Replay 1986-2024',
+  'Custom (per-year)',
+] as const;
 const RATE_MODES = ['Assumed', 'Historical'] as const;
 const oneOf = <T extends string>(opts: readonly T[], v: unknown, fallback: T): T =>
   opts.includes(v as T) ? (v as T) : fallback;
@@ -64,6 +70,10 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
     // rate. Anything malformed degrades to null (flat).
     appreciations: Array.isArray(inp.appreciations)
       ? Array.from({ length: 38 }, (_, i) => numOr(inp.appreciations![i], defaultInputs.appreciation))
+      : null,
+    // Per-year accrual index: a 38-length numeric array, or null. Malformed → null.
+    indexRates: Array.isArray(inp.indexRates)
+      ? Array.from({ length: 38 }, (_, i) => numOr(inp.indexRates![i], defaultInputs.cmt10yr))
       : null,
     existingLiens: numOr(inp.existingLiens, defaultInputs.existingLiens),
     initialCashDraw: numOr(inp.initialCashDraw, defaultInputs.initialCashDraw),

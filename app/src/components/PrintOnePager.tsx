@@ -85,7 +85,8 @@ export function PrintOnePager({
             </div>
             <div className="op-scenario-sub">
               Prepared {today} · Expected rate {pct(result.expectedRate, 3)} · Initial rate{' '}
-              {pct(result.initialRate, 3)} · PLF {pct(result.plf, 1)} · Appreciation{' '}
+              {pct(result.initialRate, 3)} · PLF {pct(result.plf, 1)}
+              {inp.rateScenario === 'Custom (per-year)' ? ' · rates vary by year' : ''} · Appreciation{' '}
               {inp.appreciations ? 'varies by year' : pct(inp.appreciation, 1)}
             </div>
           </div>

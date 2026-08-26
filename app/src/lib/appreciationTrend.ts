@@ -21,3 +21,7 @@ export function buildAppreciationTrend(
     Math.min(MAX, Math.max(MIN, base + step * i)),
   );
 }
+
+// Same flat/rising/falling glide, reused for the per-year accrual-index trend.
+// (Appreciation and the rate index are both numeric series clamped to ±20%.)
+export { buildAppreciationTrend as buildTrendSeries };

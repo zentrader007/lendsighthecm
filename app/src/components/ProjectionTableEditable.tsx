@@ -14,8 +14,11 @@ export function ProjectionTableEditable({
   payments,
   appreciations,
   baseAppreciation,
+  indexRates,
+  baseIndexSeries,
   onChange,
   onAppreciationChange,
+  onIndexChange,
   highlightAge,
 }: {
   projection: ProjectionRow[];
@@ -23,8 +26,11 @@ export function ProjectionTableEditable({
   payments: number[];
   appreciations: number[] | null;
   baseAppreciation: number;
+  indexRates: number[] | null;
+  baseIndexSeries: number[];
   onChange: (draws: number[], payments: number[]) => void;
   onAppreciationChange: (next: number[]) => void;
+  onIndexChange: (next: number[]) => void;
   highlightAge?: number;
 }) {
   // The row to highlight is the first at/after the target age (matching how the
@@ -53,6 +59,14 @@ export function ProjectionTableEditable({
     next[i] = v;
     onAppreciationChange(next);
   };
+  // Editing an index cell materializes the series from the current per-year
+  // backed-out indices, so switching to the custom rate path starts exactly
+  // where the active scenario was.
+  const setIndex = (i: number, v: number) => {
+    const next = (indexRates ?? baseIndexSeries).slice();
+    next[i] = v;
+    onIndexChange(next);
+  };
 
   return (
     <div className="table-wrap">
@@ -71,7 +85,8 @@ export function ProjectionTableEditable({
             <th>Investment <InfoTip text="The cash actually drawn at closing, if invested instead — compounding each year at the assumed (after-tax) return. Excludes any loan amount that pays off an existing lien (that's not cash in hand) and nets out out-of-pocket closing costs. Illustration only: in most cases you should not draw home equity to invest." /></th>
             <th>Invest + Equity <InfoTip text="Invested cash drawn plus remaining home equity — the 'Investment + Equity' line on the Invest comparison chart." /></th>
             <th>Tenure/Mo <InfoTip text="The monthly tenure payment the remaining credit could fund for life from that age." /></th>
-            <th>Accrual <InfoTip text="The annual rate applied to the balance and credit line that year: the expected rate (10yr CMT + margin) + MIP under the flat scenario, shocked ±2% under the stress scenarios, or the historical 1yr CMT + margin + MIP under the replay." /></th>
+            <th>Index % <InfoTip text="The interest-rate index driving growth that year, before margin and MIP. Editable per year — set an FA's view of where rates are heading, or a rising/falling glide. Editing any year switches the Rate Scenario to Custom (per-year); the Accrual column shows the resulting rate (index + margin + MIP)." /></th>
+            <th>Accrual <InfoTip text="The annual rate applied to the balance and credit line that year: the expected rate (10yr CMT + margin) + MIP under the flat scenario, shocked ±2% under the stress scenarios, the historical 1yr CMT + margin + MIP under the replay, or index + margin + MIP under Custom." /></th>
             <th>Deduction <InfoTip text="Interest paid that year that may be tax-deductible when the loan is repaid. Not tax advice." /></th>
           </tr>
         </thead>
@@ -117,6 +132,17 @@ export function ProjectionTableEditable({
               <td>{usd(r.investment)}</td>
               <td>{usd(r.investmentPlusEquity)}</td>
               <td>{r.tenureAvailPerMonth == null ? 'N/A' : usd(r.tenureAvailPerMonth)}</td>
+              <td>
+                {r.year === 0 || r.accrualIndex == null ? (
+                  'N/A'
+                ) : (
+                  <PercentCell
+                    value={indexRates?.[r.year - 1] ?? r.accrualIndex}
+                    onCommit={(v) => setIndex(r.year - 1, v)}
+                    min={0}
+                  />
+                )}
+              </td>
               <td>{r.accrualRate == null ? 'N/A' : pct(r.accrualRate, 3)}</td>
               <td>{usd(r.possibleDeduction)}</td>
             </tr>

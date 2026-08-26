@@ -38,6 +38,7 @@ export const defaultInputs: SimulationInputs = {
   cmt1yr: 0.0375,
   margin: 0.02375,
   rateScenario: 'Flat (assumed)',
+  indexRates: null, // null = follow the scenario above; set only under 'Custom (per-year)'
   hecmLimit: 1249125,
   annualMIP: 0.005,
   principalLimitOverride: 0,

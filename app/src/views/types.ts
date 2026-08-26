@@ -8,6 +8,7 @@ export const RATE_SCENARIOS: readonly RateScenario[] = [
   'Rates +2%',
   'Rates -2%',
   'Replay 1986-2024',
+  'Custom (per-year)',
 ];
 
 /** Props for the advisor layout. App.tsx owns the state; the view renders it. */
