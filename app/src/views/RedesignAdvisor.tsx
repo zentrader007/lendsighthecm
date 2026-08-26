@@ -5,6 +5,7 @@ import { runSequenceAnalysis } from '../engine/sequence';
 import { runMortgageComparison } from '../engine/comparison';
 import { runAvailableSpending } from '../engine/spending';
 import { fetchLiveCMT } from '../lib/cmt';
+import { buildLevelDraws } from '../lib/drawPlan';
 import { NumberField, SelectField, ToggleField } from '../components/Field';
 import { InfoTip } from '../components/InfoTip';
 import { ProjectionTableEditable } from '../components/ProjectionTableEditable';
@@ -65,6 +66,12 @@ export function RedesignAdvisor({
   const [targetAge, setTargetAge] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showSpendingBalance, setShowSpendingBalance] = useState(true);
+  // "Plan draws" generator (local UI, not a saved input): fills the Year table's
+  // draws array in one line. Once applied, the draws live in inp.draws like any
+  // hand-typed value — one source of truth, so nothing new to guard.
+  const [drawPlanMo, setDrawPlanMo] = useState(2000);
+  const [drawPlanStartAge, setDrawPlanStartAge] = useState(() => Math.round(inp.age) + 1);
+  const [drawPlanYears, setDrawPlanYears] = useState(10);
   const [live, setLive] = useState<{ status: 'idle' | 'loading' | 'ok' | 'error'; asOf?: string }>({
     status: 'idle',
   });
@@ -97,6 +104,11 @@ export function RedesignAdvisor({
   }, [refreshLive]);
   const setCost = (k: keyof SimulationInputs['costs'], v: number) =>
     setInp((p) => ({ ...p, costs: { ...p.costs, [k]: v } }));
+
+  // Write the level plan into the draws array (replacing it), or clear it.
+  const applyDrawPlan = () =>
+    set('draws', buildLevelDraws(drawPlanMo, drawPlanStartAge, inp.age, drawPlanYears));
+  const clearDrawPlan = () => set('draws', Array(38).fill(0));
 
   // Nearest projection row at/after a target age (falls back to the last row).
   const rowAt = (age: number) => {
@@ -220,6 +232,17 @@ export function RedesignAdvisor({
     !bothClauses
       ? `With no lien to pay off, no cash drawn, and no draws scheduled, this scenario frees no new spending — the value sits in the growing credit line (see Credit line growth). Enter a cash draw, an existing mortgage, or draws in the Year table to model new spending.`
       : `This reverse mortgage makes ${usd(spending.firstYearTotal)} available in year one, and ${usd(spendRow.cumulative)} of new spending by age ${spendRow.age} — ${bothClauses}.${borrowed ? ` Lump sum and credit-line draws are loan proceeds, so the balance accrues interest on them; the freed payment is true cash flow, not borrowed.` : ''}`;
+
+  // Preview of exactly what "Apply" will write, so the action is predictable.
+  const planAnnual = Math.max(0, drawPlanMo) * 12;
+  const planStartIdx = Math.max(0, Math.round(drawPlanStartAge) - Math.round(inp.age) - 1);
+  const planYrs = Math.max(0, Math.round(drawPlanYears));
+  const planFirstAge = Math.round(inp.age) + planStartIdx + 1;
+  const planLastAge = Math.round(inp.age) + Math.min(planStartIdx + planYrs - 1, 37) + 1;
+  const drawPlanHint =
+    planAnnual > 0 && planYrs > 0
+      ? `Apply writes ${usd(planAnnual)}/yr to the Year table — ages ${planFirstAge}–${planLastAge} (replaces existing draws)`
+      : 'Set a monthly amount and a number of years, then Apply';
 
   const insights: Record<StageView, string> = {
     loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
@@ -418,6 +441,15 @@ export function RedesignAdvisor({
                     <NumberField label="Mortgage pmt/mo" value={cmp.monthlyMortgagePayment} onChange={(v) => set('existingLienPayment', v)} suffix="$" min={0} maxDecimals={2} tip="Monthly principal & interest on the mortgage the HECM pays off — the payment freed up each month. Auto-calculated; type the client's actual payment to override, or 0 to recalculate." />
                   )}
                   <ToggleField label="Show loan balance?" value={showSpendingBalance} onChange={setShowSpendingBalance} tip="Overlay the growing HECM loan balance so the cost side of the lump sum is visible. The freed cash flow is not borrowed, so it has no cost line." />
+                </div>
+                <div className="scenario-bar seq-controls plan-draws">
+                  <span className="plan-label">Plan draws from the line</span>
+                  <NumberField label="Amount/mo" value={drawPlanMo} onChange={setDrawPlanMo} suffix="$" min={0} tip="A level monthly amount drawn from the growing line of credit, modeled as income. It is multiplied to an annual figure and written into the Year table's DRAWS column when you click Apply, replacing any existing scheduled draws. The engine still caps each year at the credit available." />
+                  <NumberField label="Start age" value={drawPlanStartAge} onChange={setDrawPlanStartAge} min={0} tip="The age the draws begin. The earliest scheduled draw is one year after the current age — cash taken right now is the Cash draw field above." />
+                  <NumberField label="Years" value={drawPlanYears} onChange={setDrawPlanYears} min={0} max={38} tip="How many years the level draw runs." />
+                  <button className="plan-btn" onClick={applyDrawPlan}>Apply to Year table</button>
+                  <button className="plan-btn plan-btn-ghost" onClick={clearDrawPlan}>Clear</button>
+                  <span className="plan-hint">{drawPlanHint}</span>
                 </div>
                 <p className="freed-cashflow">
                   <span className="freed-label">Available spending</span>
