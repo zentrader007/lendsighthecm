@@ -1113,3 +1113,43 @@ table.projection td:first-child, table.projection th:first-child { text-align: c
   .op-overlay { position: static; padding: 0; background: none; overflow: visible; }
   .op-sheet { box-shadow: none; border-radius: 0; margin: 0; }
 }
+
+/* Clickable field label — switches what the field means (cash draw ⇄ deposit). */
+.label-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  border-bottom: 1px dashed var(--primary);
+  line-height: 1.2;
+}
+.label-toggle:hover { color: var(--primary-hover); border-bottom-style: solid; }
+
+/* "In the money" callout on the credit-line tab for a borrower who is short. */
+.itm-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px 7px;
+  margin: 12px 0 0;
+  padding: 11px 16px;
+  background: rgba(199, 91, 91, 0.1);
+  border-left: 2px solid var(--red);
+  border-radius: var(--radius-sm);
+  color: var(--navy);
+}
+.itm-strip.itm-qualified { background: rgba(91, 159, 91, 0.1); border-left-color: var(--green); }
+.itm-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a94442;
+}
+.itm-qualified .itm-label { color: #3f7a3f; }
+.itm-value { font-family: var(--font-mono); font-weight: 700; font-size: 15px; }
+.itm-note { flex-basis: 100%; text-align: center; font-size: 13px; color: var(--muted); }

@@ -3,6 +3,14 @@
 
 export type RateSourceMode = 'Assumed' | 'Historical';
 
+/**
+ * Whether the cash figure at closing is money the borrower TAKES OUT (a draw)
+ * or money they BRING IN (a deposit). A deposit reduces what the loan has to
+ * cover, which is how a borrower who is short of qualifying closes the gap
+ * without waiting.
+ */
+export type CashMode = 'Draw' | 'Deposit';
+
 /** How the accrual rate behaves across the projection. */
 export type RateScenario =
   | 'Flat (assumed)'
@@ -53,7 +61,10 @@ export interface SimulationInputs {
 
   // Liens & draws
   existingLiens: number; // mandatory obligations
+  /** Magnitude of the cash figure at closing; `cashMode` decides its direction. */
   initialCashDraw: number;
+  /** 'Draw' = borrower takes this cash out; 'Deposit' = borrower brings it in. */
+  cashMode: CashMode;
   costsInLoan: boolean;
   /**
    * Finance only the initial MIP into the loan and pay all other closing costs
@@ -173,6 +184,11 @@ export interface SimulationResult {
   netCashDrawn: number; // cash the borrower nets at closing (draw beyond the lien payoff & financed costs); capping-aware, never negative
   initialUPB: number;
   remainingCredit: number; // floored at 0 for display
+  /** Signed: principal limit less everything the loan must cover. Negative means
+   *  the borrower does not yet qualify (short by that much). */
+  availableFunds: number;
+  /** Borrower's own cash brought to closing (0 unless cashMode is 'Deposit'). */
+  cashDeposit: number;
   overDraw: number; // amount by which liens + draw + financed costs exceed the principal limit
   /** Cash draw at closing beyond HUD's first-year disbursement limit (the 60% rule). */
   firstYearDrawExcess: number;

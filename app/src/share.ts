@@ -45,6 +45,7 @@ const RATE_SCENARIOS = [
   'Custom (per-year)',
 ] as const;
 const RATE_MODES = ['Assumed', 'Historical'] as const;
+const CASH_MODES = ['Draw', 'Deposit'] as const;
 const oneOf = <T extends string>(opts: readonly T[], v: unknown, fallback: T): T =>
   opts.includes(v as T) ? (v as T) : fallback;
 
@@ -77,6 +78,7 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
       : null,
     existingLiens: numOr(inp.existingLiens, defaultInputs.existingLiens),
     initialCashDraw: numOr(inp.initialCashDraw, defaultInputs.initialCashDraw),
+    cashMode: oneOf(CASH_MODES, inp.cashMode, defaultInputs.cashMode),
     cmt10yr: numOr(inp.cmt10yr, defaultInputs.cmt10yr),
     cmt1yr: numOr(inp.cmt1yr, defaultInputs.cmt1yr),
     margin: numOr(inp.margin, defaultInputs.margin),

@@ -32,6 +32,7 @@ export const defaultInputs: SimulationInputs = {
   appreciations: null, // null = use the flat rate above for every year
   existingLiens: 0,
   initialCashDraw: 50000,
+  cashMode: 'Draw',
   costsInLoan: true,
   financeMipOnly: false,
   cmt10yr: 0.0438,

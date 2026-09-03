@@ -57,9 +57,16 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   const feesInLoan = financedCosts;
   const sixtyPctPL = 0.6 * principalLimit - feesInLoan;
   const tenPctPL = 0.1 * principalLimit;
-  const plMinusMOMinusFees = principalLimit - mandatoryObligations - feesInLoan;
 
-  const baseUPB = financedCosts + mandatoryObligations + initialCashDraw;
+  // Cash at closing is signed by `cashMode`: a draw adds to what the loan must
+  // cover, a deposit (borrower's own money brought in) subtracts from it. A
+  // deposit is how a borrower short of qualifying closes the gap without
+  // waiting — and any deposit beyond the shortfall leaves more principal limit
+  // unused, which becomes a growing line of credit.
+  const signedCash =
+    inp.cashMode === 'Deposit' ? -Math.abs(initialCashDraw) : Math.max(0, initialCashDraw);
+  const cashDeposit = inp.cashMode === 'Deposit' ? Math.abs(initialCashDraw) : 0;
+  const baseUPB = Math.max(0, financedCosts + mandatoryObligations + signedCash);
   const initialUPB = Math.min(baseUPB, principalLimit);
   // Cash the borrower actually nets at closing: the loan balance less financed
   // costs and the lien payoff. Capping-aware (an over-draw shrinks it), never
@@ -73,11 +80,20 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   const remainingCredit = Math.max(0, availableFunds);
   const overDraw = Math.max(0, baseUPB - principalLimit);
 
+  // HUD's first-year rule turns on the mandatory obligations the LOAN has to
+  // fund. A borrower's own deposit pays part of them directly, so it reduces
+  // that figure — without netting it out, a lien larger than the principal limit
+  // drives the limit negative. Floored at 0: it is an amount available.
+  const effectiveMO = Math.max(0, mandatoryObligations - cashDeposit);
+  const plMinusMOMinusFees = principalLimit - effectiveMO - feesInLoan;
   const availableInitialDraw =
     availableFunds > 0
-      ? mandatoryObligations + tenPctPL > sixtyPctPL
-        ? Math.min(tenPctPL, plMinusMOMinusFees)
-        : sixtyPctPL - mandatoryObligations
+      ? Math.max(
+          0,
+          effectiveMO + tenPctPL > sixtyPctPL
+            ? Math.min(tenPctPL, plMinusMOMinusFees)
+            : sixtyPctPL - effectiveMO,
+        )
       : 0;
 
   const maxTenurePayment =
@@ -294,7 +310,7 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
   // year-1 draw, not the requested figure.
   const firstYearDrawExcess = Math.max(
     0,
-    initialCashDraw + (projection[1]?.draw ?? 0) - availableInitialDraw,
+    Math.max(0, signedCash) + (projection[1]?.draw ?? 0) - availableInitialDraw,
   );
 
   return {
@@ -312,6 +328,8 @@ export function runSimulation(inp: SimulationInputs): SimulationResult {
     netCashDrawn,
     initialUPB,
     remainingCredit,
+    availableFunds,
+    cashDeposit,
     overDraw,
     firstYearDrawExcess,
     drawsBeyondCredit,

@@ -15,6 +15,9 @@ interface NumberFieldProps {
   plain?: boolean; // no thousands grouping (e.g. calendar years)
   emptyValue?: number; // value committed when the field is cleared (default 0)
   maxDecimals?: number; // digits shown after the decimal point (default 4)
+  /** When set, the label becomes a button — click it to switch what the field
+   *  means (e.g. cash draw ⇄ cash deposit). */
+  onLabelClick?: () => void;
 }
 
 export function NumberField({
@@ -30,6 +33,7 @@ export function NumberField({
   plain,
   emptyValue,
   maxDecimals,
+  onLabelClick,
 }: NumberFieldProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -53,7 +57,25 @@ export function NumberField({
 
   return (
     <label className={`field${disabled ? ' field-disabled' : ''}`}>
-      <span>{label}{tip && <InfoTip text={tip} />}</span>
+      <span>
+        {onLabelClick ? (
+          // preventDefault so clicking the toggle doesn't also focus the input
+          <button
+            type="button"
+            className="label-toggle"
+            onClick={(e) => {
+              e.preventDefault();
+              onLabelClick();
+            }}
+            title="Click to switch"
+          >
+            {label} ⇄
+          </button>
+        ) : (
+          label
+        )}
+        {tip && <InfoTip text={tip} />}
+      </span>
       <div className="field-input">
         {suffix === '$' && <span className="prefix">$</span>}
         <input

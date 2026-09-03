@@ -4,6 +4,7 @@ import { defaultInputs } from '../engine/defaults';
 import { runSequenceAnalysis } from '../engine/sequence';
 import { runMortgageComparison } from '../engine/comparison';
 import { runAvailableSpending } from '../engine/spending';
+import { runInTheMoney } from '../engine/inTheMoney';
 import { fetchLiveCMT } from '../lib/cmt';
 import { buildLevelDraws } from '../lib/drawPlan';
 import { buildAppreciationTrend, buildTrendSeries } from '../lib/appreciationTrend';
@@ -15,6 +16,9 @@ import { usd, pct } from '../format';
 import { RATE_MODES, RATE_SCENARIOS } from './types';
 import type { AdvisorProps } from './types';
 
+const InTheMoneyChart = lazy(() =>
+  import('../components/Charts').then((m) => ({ default: m.InTheMoneyChart })),
+);
 const LocChart = lazy(() =>
   import('../components/Charts').then((m) => ({ default: m.LocChart })),
 );
@@ -196,6 +200,8 @@ export function RedesignAdvisor({
 
   // Net-new spending the HECM creates: a lump sum at closing plus freed cash flow.
   const spending = useMemo(() => runAvailableSpending(inp), [inp]);
+  // "In the money": only meaningful for a borrower who cannot close today.
+  const itm = useMemo(() => runInTheMoney(inp), [inp]);
 
   // Values at the marked age for the active chart, echoed beside the input.
   const tSeq = atTarget(seq.rows);
@@ -291,7 +297,11 @@ export function RedesignAdvisor({
       : 'Set a monthly amount and a number of years, then Apply';
 
   const insights: Record<StageView, string> = {
-    loc: `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
+    loc: itm.isShortToday
+      ? itm.itmAge != null
+        ? `This borrower is ${usd(itm.shortfallToday)} short of qualifying today. Bringing ${usd(itm.depositToQualifyNow)} to closing qualifies them now — or, with no cash at all, they come into the money at age ${itm.itmAge} as the PLF rises with age, the home appreciates, and the mortgage amortizes down.`
+        : `This borrower is ${usd(itm.shortfallToday)} short of qualifying, and does not reach the money within the projection. Closing the gap needs cash at closing — switch the Cash draw label to "Cash deposit" to model it.`
+      : `Unused credit grows from ${usd(result.remainingCredit)} today to about ${usd(locEqRow.availableLOC)} by age ${locEqRow.age} — even if the home's value never changes.`,
     spending: spendingInsight,
     networth: networthInsight,
     equity: `At age ${locEqRow.age} the home is projected at ${usd(locEqRow.homeValue)} with a ${usd(locEqRow.upb)} loan balance — leaving ${usd(locEqRow.equity)} in equity.`,
@@ -355,7 +365,19 @@ export function RedesignAdvisor({
         <NumberField label="Age" value={inp.age} onChange={(v) => set('age', v)} min={18} max={99} tip="The age of the youngest borrower or eligible non-borrowing spouse. Older ages qualify for a higher PLF." />
         <NumberField label="Home value" value={inp.homeValue} onChange={(v) => set('homeValue', v)} suffix="$" min={0} tip="The appraised value of the home. Value above the HECM lending limit is not counted." />
         <NumberField label="Liens" value={inp.existingLiens} onChange={(v) => set('existingLiens', v)} suffix="$" min={0} tip="Mortgages or liens that must be paid off at closing. These reduce available proceeds." />
-        <NumberField label="Cash draw" value={inp.initialCashDraw} onChange={(v) => set('initialCashDraw', v)} suffix="$" min={0} tip="Cash taken at closing, in addition to paying off liens and costs." />
+        <NumberField
+          label={inp.cashMode === 'Deposit' ? 'Cash deposit' : 'Cash draw'}
+          value={inp.initialCashDraw}
+          onChange={(v) => set('initialCashDraw', v)}
+          suffix="$"
+          min={0}
+          onLabelClick={() => set('cashMode', inp.cashMode === 'Deposit' ? 'Draw' : 'Deposit')}
+          tip={
+            inp.cashMode === 'Deposit'
+              ? "The borrower's own cash brought TO closing, which reduces what the loan must cover. Use it when the principal limit does not reach the lien payoff — it is how someone short of qualifying closes the gap without waiting. Click the label to switch back to a cash draw."
+              : 'Cash taken at closing, in addition to paying off liens and costs. Click the label to switch to a cash deposit (money brought in rather than taken out).'
+          }
+        />
         <button className="assumptions-btn" onClick={() => setDrawerOpen(true)}>
           Assumptions &amp; costs
         </button>
@@ -363,9 +385,22 @@ export function RedesignAdvisor({
 
       {result.overDraw > 0 && (
         <div className="warning-banner">
-          The requested draw exceeds the principal limit by{' '}
-          <strong>{usd(result.overDraw)}</strong>. The loan balance has been capped at the
-          principal limit; reduce the initial cash draw, liens, or financed costs.
+          {itm.isShortToday && inp.initialCashDraw === 0 ? (
+            <>
+              This borrower does not qualify today — the principal limit is{' '}
+              <strong>{usd(itm.shortfallToday)}</strong> short of covering the lien payoff and
+              financed costs, so the loan cannot close.{' '}
+              {itm.itmAge != null
+                ? `See Credit line growth for when they come into the money (age ${itm.itmAge}) or what deposit closes the gap now.`
+                : 'See Credit line growth — closing the gap requires cash at closing.'}
+            </>
+          ) : (
+            <>
+              The requested draw exceeds the principal limit by{' '}
+              <strong>{usd(result.overDraw)}</strong>. The loan balance has been capped at the
+              principal limit; reduce the initial cash draw, liens, or financed costs.
+            </>
+          )}
         </div>
       )}
 
@@ -486,7 +521,55 @@ export function RedesignAdvisor({
           />
         ) : (
           <Suspense fallback={<div className="chart-loading">Loading chart…</div>}>
-            {stage === 'loc' && <LocChart projection={result.projection} targetAge={markerAge} />}
+            {stage === 'loc' &&
+              (itm.isShortToday ? (
+                <>
+                  <InTheMoneyChart
+                    rows={itm.rows}
+                    itmAge={itm.itmAge ?? undefined}
+                    targetAge={markerAge}
+                  />
+                  <p className="itm-strip">
+                    <span className="itm-label">Not yet in the money</span>
+                    <span className="itm-value">short {usd(itm.shortfallToday)}</span>
+                    <span className="freed-sep">·</span>
+                    <span className="itm-value">
+                      {itm.itmAge != null
+                        ? `qualifies at age ${itm.itmAge}`
+                        : 'does not qualify within the projection'}
+                    </span>
+                    <span className="itm-note">
+                      The principal limit ({usd(itm.rows[0].principalLimit)}) does not yet cover the{' '}
+                      {usd(itm.rows[0].lienBalance)} lien plus {usd(itm.rows[0].financedCosts)} of
+                      financed costs.{' '}
+                      {itm.itmAge != null
+                        ? `Depositing ${usd(itm.depositToQualifyNow)} closes the gap today — or waiting until age ${itm.itmAge} does it without cash, as the PLF rises with age, the home appreciates, and the mortgage amortizes down.`
+                        : 'Bringing cash to closing is the only route within this projection — switch the Cash draw label to "Cash deposit" to model it.'}
+                    </span>
+                  </p>
+                  <p className="chart-caption">
+                    Below the line the loan cannot close, so there is no credit line to grow yet —
+                    this projects a <em>new</em> loan originated at each future age. Assumes the
+                    existing mortgage keeps amortizing on the rate and term set under Net worth.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <LocChart projection={result.projection} targetAge={markerAge} />
+                  {itm.cashDeposit > 0 && (
+                    <p className="itm-strip itm-qualified">
+                      <span className="itm-label">In the money</span>
+                      <span className="itm-value">{usd(itm.cashDeposit)} deposit</span>
+                      <span className="freed-sep">·</span>
+                      <span className="itm-value">{usd(result.remainingCredit)} credit line</span>
+                      <span className="itm-note">
+                        The deposit covers the shortfall and the surplus opens a line of credit that
+                        grows from day one.
+                      </span>
+                    </p>
+                  )}
+                </>
+              ))}
             {stage === 'spending' && (
               <>
                 <div className="scenario-bar seq-controls">

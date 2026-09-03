@@ -1,7 +1,15 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { RateScenario, RateSourceMode, SimulationInputs, SimulationResult } from '../engine';
+import type {
+  CashMode,
+  RateScenario,
+  RateSourceMode,
+  SimulationInputs,
+  SimulationResult,
+} from '../engine';
 
 export const RATE_MODES: readonly RateSourceMode[] = ['Assumed', 'Historical'];
+
+export const CASH_MODES: readonly CashMode[] = ['Draw', 'Deposit'];
 
 export const RATE_SCENARIOS: readonly RateScenario[] = [
   'Flat (assumed)',

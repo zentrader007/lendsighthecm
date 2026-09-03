@@ -18,6 +18,7 @@ import type { ProjectionRow } from '../engine';
 import type { SequenceRow } from '../engine/sequence';
 import type { ComparisonRow } from '../engine/comparison';
 import type { SpendingRow } from '../engine/spending';
+import type { ItmRow } from '../engine/inTheMoney';
 import { usd } from '../format';
 
 const fmtK = (n: number) => `$${Math.round(n / 1000)}k`;
@@ -385,5 +386,91 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
       <h3>{title}</h3>
       <div className="chart-body">{children}</div>
     </div>
+  );
+}
+
+/**
+ * "In the money": how far a borrower is from qualifying, projected forward.
+ * Below zero they cannot close (red); the crossing is the age they qualify.
+ * Only shown for someone short today — anyone already qualified has no story here.
+ */
+export function InTheMoneyChart({
+  rows,
+  itmAge,
+  targetAge,
+  consumer,
+}: {
+  rows: ItmRow[];
+  itmAge?: number;
+  targetAge?: number;
+  consumer?: boolean;
+}) {
+  // Two series so the sign is colour-coded. The shortfall series is carried one
+  // point past the crossing so the red line visibly reaches zero instead of
+  // stopping short, and the two overlap on exactly that point — no visual gap.
+  const data = rows.map((r, i) => {
+    const neg = r.available < 0;
+    const prevNeg = i > 0 && rows[i - 1].available < 0;
+    return {
+      age: r.age,
+      shortfall: neg || prevNeg ? r.available : null,
+      surplus: r.available >= 0 ? r.available : null,
+      available: r.available,
+    };
+  });
+  const m = atAge(data, targetAge);
+  const itm = atAge(data, itmAge);
+  return (
+    <ChartCard
+      title={
+        consumer
+          ? 'When you would qualify for a reverse mortgage'
+          : 'In the Money: Qualification Gap Over Time'
+      }
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 24, right: 16, left: 8, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#eef2f5" />
+          <XAxis dataKey="age" tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} />
+          <YAxis tickFormatter={fmtK} tick={{ fontSize: 12, fontWeight: 700, fontFamily: 'DM Mono, monospace' }} width={64} />
+          <Tooltip formatter={tip} labelFormatter={(l) => `Age ${l}`} />
+          <Legend />
+          {/* Zero is the qualification line: below it the loan cannot close. */}
+          <ReferenceLine y={0} stroke="#1b2a4a" strokeWidth={1.5} />
+          <Line
+            type="monotone"
+            dataKey="shortfall"
+            name={consumer ? 'Short by this much' : 'Short of qualifying'}
+            stroke="#c75b5b"
+            dot={false}
+            strokeWidth={2.5}
+            connectNulls={false}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="surplus"
+            name={consumer ? 'Available to you' : 'Available (qualifies)'}
+            stroke="#5b9f5b"
+            dot={false}
+            strokeWidth={2.5}
+            connectNulls={false}
+            isAnimationActive={false}
+          />
+          {itm && itmAge != null && (
+            <>
+              <ReferenceLine x={itmAge} stroke="#5b9f5b" strokeDasharray="2 3" strokeWidth={1.5} />
+              {labelDot(itmAge, itm.available, '#5b9f5b', `In the money · age ${itmAge}`)}
+            </>
+          )}
+          {m && (
+            <>
+              {markerLine(m.age)}
+              {markerDot(m.age, m.available, '#1b2a4a')}
+            </>
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </ChartCard>
   );
 }
