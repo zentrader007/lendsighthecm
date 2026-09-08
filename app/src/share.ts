@@ -24,6 +24,42 @@ export function fromBase64Url(s: string): unknown {
   }
 }
 
+const bytesToBase64Url = (bytes: Uint8Array): string => {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+const base64UrlToBytes = (s: string): Uint8Array =>
+  Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+
+async function pipeThrough(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
+  const out = new Blob([bytes as BlobPart]).stream().pipeThrough(stream);
+  return new Uint8Array(await new Response(out).arrayBuffer());
+}
+
+/** True when the browser can deflate/inflate natively (all evergreen browsers since 2023). */
+export const canCompress = (): boolean =>
+  typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
+
+/** Deflate a JSON payload to URL-safe base64 — roughly a third the size of the
+ *  plain encoding, which keeps client links well under the ~2,000-character
+ *  limit where email clients and messaging apps start to truncate. */
+export async function toCompressedBase64Url(value: unknown): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  return bytesToBase64Url(await pipeThrough(bytes, new CompressionStream('deflate-raw')));
+}
+
+export async function fromCompressedBase64Url(s: string): Promise<unknown> {
+  try {
+    const bytes = await pipeThrough(base64UrlToBytes(s), new DecompressionStream('deflate-raw'));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
 // Encode/decode the full input set into a URL-safe string so a scenario can be
 // shared as a link that reproduces the exact same numbers.
 export function encodeInputs(inp: SimulationInputs): string {

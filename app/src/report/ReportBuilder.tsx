@@ -80,8 +80,14 @@ export function ReportBuilder({
   // day it was sent, even if opened months later.
   const linkFor = useCallback(() => buildReportUrl(inp, { ...config, preparedOn: todayISO() }), [inp, config]);
 
+  // The last link built, shown read-only under the actions so the advisor can
+  // see exactly what was copied (and re-copy it by hand if the clipboard
+  // misbehaves).
+  const [lastLink, setLastLink] = useState('');
+
   const copyLink = async () => {
-    const url = linkFor();
+    const url = await linkFor();
+    setLastLink(url);
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -90,7 +96,11 @@ export function ReportBuilder({
       window.prompt('Copy this client link:', url);
     }
   };
-  const openAsClient = () => window.open(linkFor(), '_blank', 'noopener');
+  const openAsClient = async () => {
+    const url = await linkFor();
+    setLastLink(url);
+    window.open(url, '_blank', 'noopener');
+  };
   const print = () => window.print();
 
   const ui = (
@@ -115,6 +125,12 @@ export function ReportBuilder({
           </button>
         </div>
       </div>
+      {lastLink && (
+        <div className="rp-linkbar">
+          <span className="rp-linkbar-label">Client link · {lastLink.length} characters</span>
+          <input className="rp-linkbar-input" readOnly value={lastLink} onFocus={(e) => e.currentTarget.select()} />
+        </div>
+      )}
 
       <div className="rp-builder-main">
         <aside className="rp-builder-rail">

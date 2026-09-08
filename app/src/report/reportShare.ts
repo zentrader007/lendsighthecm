@@ -4,7 +4,14 @@
 // Legacy `?view=consumer&d=<inputs>` links (sent before the presentation
 // existed) still open, as a Standard report with no personalization.
 import type { SimulationInputs } from '../engine';
-import { toBase64Url, fromBase64Url, inputsFromJson } from '../share';
+import {
+  toBase64Url,
+  fromBase64Url,
+  inputsFromJson,
+  canCompress,
+  toCompressedBase64Url,
+  fromCompressedBase64Url,
+} from '../share';
 import {
   defaultReportConfig,
   emptyAdvisor,
@@ -69,12 +76,22 @@ export function sanitizeReportConfig(raw: unknown): ReportConfig {
   };
 }
 
+// A `~` prefix (URL-unreserved, not in the base64url alphabet) marks a
+// deflated payload; without it the payload is plain base64url JSON.
+const COMPRESSED_PREFIX = '~';
+
+/** Plain (uncompressed) encoding — the fallback, and what tests use. */
 export function encodeReport(inputs: SimulationInputs, report: ReportConfig): string {
   return toBase64Url({ i: inputs, r: report });
 }
 
-export function decodeReport(s: string): ReportPayload | null {
-  const parsed = fromBase64Url(s);
+/** Compressed when the browser can; about a third the length of the plain form. */
+export async function encodeReportCompact(inputs: SimulationInputs, report: ReportConfig): Promise<string> {
+  if (!canCompress()) return encodeReport(inputs, report);
+  return COMPRESSED_PREFIX + (await toCompressedBase64Url({ i: inputs, r: report }));
+}
+
+function payloadFromJson(parsed: unknown): ReportPayload | null {
   if (!parsed || typeof parsed !== 'object') return null;
   const p = parsed as { i?: unknown; r?: unknown };
   const inputs = inputsFromJson(p.i);
@@ -82,25 +99,47 @@ export function decodeReport(s: string): ReportPayload | null {
   return { inputs, report: sanitizeReportConfig(p.r) };
 }
 
-export function buildReportUrl(inputs: SimulationInputs, report: ReportConfig): string {
+export const isCompressedPayload = (s: string): boolean => s.startsWith(COMPRESSED_PREFIX);
+
+/** Decode a plain payload. Returns null for a compressed one — use decodeReportAsync. */
+export function decodeReport(s: string): ReportPayload | null {
+  if (isCompressedPayload(s)) return null;
+  return payloadFromJson(fromBase64Url(s));
+}
+
+export async function decodeReportAsync(s: string): Promise<ReportPayload | null> {
+  if (!isCompressedPayload(s)) return decodeReport(s);
+  if (!canCompress()) return null;
+  return payloadFromJson(await fromCompressedBase64Url(s.slice(COMPRESSED_PREFIX.length)));
+}
+
+export async function buildReportUrl(inputs: SimulationInputs, report: ReportConfig): Promise<string> {
   const base = `${window.location.origin}${window.location.pathname}`;
-  return `${base}?r=${encodeReport(inputs, report)}`;
+  return `${base}?r=${await encodeReportCompact(inputs, report)}`;
 }
 
 export interface SharedState {
-  view: 'advisor' | 'report';
+  /** 'pending' = a compressed `?r=` still inflating; 'broken' = a `?r=` that
+   *  could not be decoded (truncated or mangled in transit). */
+  view: 'advisor' | 'report' | 'pending' | 'broken';
   inputs: SimulationInputs | null;
   report: ReportConfig | null;
 }
 
-/** What the URL asks for on load. `?r=` wins; a legacy consumer link maps to a
- *  Standard report; a bare `?d=` opens the advisor with those inputs. */
+/** What the URL asks for on load, synchronously. `?r=` wins (a compressed one
+ *  comes back 'pending' — finish with resolveSharedState); a legacy consumer
+ *  link maps to a Standard report; a bare `?d=` opens the advisor with those
+ *  inputs. An undecodable `?r=` is reported as 'broken', never silently
+ *  replaced by the defaults. */
 export function readSharedState(search: string = window.location.search): SharedState {
   const params = new URLSearchParams(search);
   const r = params.get('r');
   if (r) {
+    if (isCompressedPayload(r)) return { view: 'pending', inputs: null, report: null };
     const payload = decodeReport(r);
-    if (payload) return { view: 'report', inputs: payload.inputs, report: payload.report };
+    return payload
+      ? { view: 'report', inputs: payload.inputs, report: payload.report }
+      : { view: 'broken', inputs: null, report: null };
   }
   const d = params.get('d');
   const inputs = d ? inputsFromJson(fromBase64Url(d)) : null;
@@ -108,4 +147,14 @@ export function readSharedState(search: string = window.location.search): Shared
     return { view: 'report', inputs, report: sanitizeReportConfig({ preset: 'standard' }) };
   }
   return { view: 'advisor', inputs, report: null };
+}
+
+/** Finish a 'pending' state by inflating the compressed payload. */
+export async function resolveSharedState(search: string = window.location.search): Promise<SharedState> {
+  const sync = readSharedState(search);
+  if (sync.view !== 'pending') return sync;
+  const payload = await decodeReportAsync(new URLSearchParams(search).get('r') ?? '');
+  return payload
+    ? { view: 'report', inputs: payload.inputs, report: payload.report }
+    : { view: 'broken', inputs: null, report: null };
 }

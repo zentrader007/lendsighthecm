@@ -1,8 +1,8 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { runSimulation } from './engine';
 import type { SimulationInputs } from './engine';
 import { defaultInputs } from './engine/defaults';
-import { readSharedState } from './report/reportShare';
+import { readSharedState, resolveSharedState, type SharedState } from './report/reportShare';
 import { RedesignAdvisor } from './views/RedesignAdvisor';
 import './App.css';
 
@@ -14,13 +14,45 @@ const ReportBuilder = lazy(() =>
   import('./report/ReportBuilder').then((m) => ({ default: m.ReportBuilder })),
 );
 
-const shared = readSharedState();
+// Decoded synchronously at load; a compressed client link comes back
+// 'pending' and finishes inflating in the effect below.
+const initialShared = readSharedState();
 
 export default function App() {
-  const [inp, setInp] = useState<SimulationInputs>(shared.inputs ?? defaultInputs);
+  const [shared, setShared] = useState<SharedState>(initialShared);
+  const [inp, setInp] = useState<SimulationInputs>(initialShared.inputs ?? defaultInputs);
   const [presentationOpen, setPresentationOpen] = useState(false);
 
+  useEffect(() => {
+    if (initialShared.view !== 'pending') return;
+    resolveSharedState().then((s) => {
+      setShared(s);
+      if (s.inputs) setInp(s.inputs);
+    });
+  }, []);
+
   const result = useMemo(() => runSimulation(inp), [inp]);
+
+  if (shared.view === 'pending') {
+    return <div className="chart-loading">Loading your plan…</div>;
+  }
+
+  // A `?r=` that can't be decoded was truncated or altered somewhere between
+  // the advisor's clipboard and this browser. Say so — never quietly show the
+  // default scenario as if it were the client's.
+  if (shared.view === 'broken') {
+    return (
+      <div className="link-broken">
+        <span className="link-broken-brand">LendsightAI</span>
+        <h1>This link didn’t come through complete</h1>
+        <p>
+          The plan is encoded in the link itself, and part of it is missing or was changed along the
+          way — this often happens when a long link is wrapped or shortened by an email or messaging
+          app. Please ask your advisor to send the link again, or to send the plan as a PDF.
+        </p>
+      </div>
+    );
+  }
 
   // A `?r=` (or legacy consumer) link is the client's copy: render only the
   // report, with the exact inputs and configuration it was built with.

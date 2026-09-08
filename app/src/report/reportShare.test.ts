@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { defaultInputs } from '../engine/defaults';
 import { encodeInputs } from '../share';
-import { encodeReport, decodeReport, sanitizeReportConfig, readSharedState, LIMITS } from './reportShare';
+import {
+  encodeReport,
+  decodeReport,
+  encodeReportCompact,
+  decodeReportAsync,
+  sanitizeReportConfig,
+  readSharedState,
+  resolveSharedState,
+  LIMITS,
+} from './reportShare';
 import { defaultReportConfig, presetFor, toggleSection, moveSection, applyPreset, PRESET_SECTIONS } from './reportConfig';
 
 describe('Client presentation link round-trip', () => {
@@ -84,10 +93,53 @@ describe('readSharedState', () => {
     expect(s.report).toBeNull();
   });
 
-  it('falls back to the advisor with defaults when the payload is garbage', () => {
+  it('reports a damaged ?r= link as broken instead of showing defaults', () => {
     const s = readSharedState('?r=garbage');
-    expect(s.view).toBe('advisor');
+    expect(s.view).toBe('broken');
     expect(s.inputs).toBeNull();
+  });
+
+  it('reports a truncated ?r= link as broken', () => {
+    const full = encodeReport({ ...defaultInputs, age: 77 }, defaultReportConfig());
+    const s = readSharedState(`?r=${full.slice(0, Math.floor(full.length * 0.8))}`);
+    expect(s.view).toBe('broken');
+  });
+});
+
+describe('Compressed client links', () => {
+  const inputs = { ...defaultInputs, age: 72, homeValue: 700_000, existingLiens: 120_000 };
+  const report = { ...defaultReportConfig(), client: { name: 'Test Client' }, notes: 'Hello.' };
+
+  it('round-trips through deflate and is much shorter than the plain form', async () => {
+    const plain = encodeReport(inputs, report);
+    const compact = await encodeReportCompact(inputs, report);
+    expect(compact.startsWith('~')).toBe(true);
+    expect(compact.length).toBeLessThan(plain.length * 0.5);
+    const decoded = await decodeReportAsync(compact);
+    expect(decoded?.inputs.age).toBe(72);
+    expect(decoded?.inputs.homeValue).toBe(700_000);
+    expect(decoded?.inputs.existingLiens).toBe(120_000);
+    expect(decoded?.report.client.name).toBe('Test Client');
+    expect(decoded?.report.notes).toBe('Hello.');
+  });
+
+  it('the sync reader flags a compressed link as pending; resolve finishes it', async () => {
+    const compact = await encodeReportCompact(inputs, report);
+    expect(readSharedState(`?r=${compact}`).view).toBe('pending');
+    const s = await resolveSharedState(`?r=${compact}`);
+    expect(s.view).toBe('report');
+    expect(s.inputs?.age).toBe(72);
+    expect(s.report?.client.name).toBe('Test Client');
+  });
+
+  it('a truncated compressed link resolves to broken', async () => {
+    const compact = await encodeReportCompact(inputs, report);
+    const s = await resolveSharedState(`?r=${compact.slice(0, compact.length - 40)}`);
+    expect(s.view).toBe('broken');
+  });
+
+  it('decodeReport (sync) refuses a compressed payload rather than misreading it', async () => {
+    expect(decodeReport(await encodeReportCompact(inputs, report))).toBeNull();
   });
 });
 
