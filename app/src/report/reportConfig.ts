@@ -41,6 +41,8 @@ export interface ReportConfig {
   notes: string;
   /** ISO date (YYYY-MM-DD) the report was prepared; frozen when a link is built. */
   preparedOn: string;
+  /** Age to mark on every chart and highlight in the year table, or null. */
+  targetAge: number | null;
 }
 
 /** Scenario facts that decide whether a section has anything to say. */
@@ -108,7 +110,7 @@ export const todayISO = (): string => {
   return `${d.getFullYear()}-${mm}-${dd}`;
 };
 
-export function defaultReportConfig(advisor: AdvisorProfile = emptyAdvisor): ReportConfig {
+export function defaultReportConfig(advisor: AdvisorProfile = emptyAdvisor, targetAge?: number): ReportConfig {
   return {
     v: 1,
     preset: 'standard',
@@ -117,7 +119,14 @@ export function defaultReportConfig(advisor: AdvisorProfile = emptyAdvisor): Rep
     advisor: { ...advisor },
     notes: '',
     preparedOn: todayISO(),
+    targetAge: sanitizeTargetAge(targetAge),
   };
+}
+
+/** A whole-number age in a plausible range, or null. */
+export function sanitizeTargetAge(v: unknown): number | null {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) && n >= 18 && n <= 120 ? n : null;
 }
 
 /** The list as given (order preserved), minus unknowns and duplicates, with

@@ -1,7 +1,7 @@
 // "Plan at a glance": the whole plan on one page — the old print one-pager,
 // reflowed to portrait. Headline numbers, the two charts a client asks about
 // first, and the plan's milestones.
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceLine } from 'recharts';
 import { usd, pct } from '../../format';
 import { Tile, Tiles, Panel, Line as Row, SectionHead } from './bits';
 import type { SectionProps } from './types';
@@ -15,6 +15,10 @@ const tick = { fontSize: 10, fontWeight: 700, fontFamily: 'DM Mono, monospace', 
 
 export function Summary({ data, config }: SectionProps) {
   const { inp, result, cmp, spending, spendRef, ref, hasLien, last } = data;
+  const t = config.targetAge;
+  const marker = t != null && t >= result.projection[0].age && t <= last.age && (
+    <ReferenceLine x={t} stroke={NAVY} strokeDasharray="4 4" label={{ value: `Age ${t}`, position: 'top', fontSize: 9, fontWeight: 700, fill: NAVY, fontFamily: 'DM Mono, monospace' }} />
+  );
   const chart = result.projection.map((r) => ({
     age: r.age,
     homeValue: r.homeValue,
@@ -85,6 +89,7 @@ export function Summary({ data, config }: SectionProps) {
               <XAxis dataKey="age" tick={tick} tickLine={false} interval="preserveStartEnd" />
               <YAxis tickFormatter={fmtK} tick={tick} tickLine={false} width={46} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
+              {marker}
               <Line type="monotone" dataKey="availableLOC" name="Available credit line" stroke={BLUE} dot={false} strokeWidth={2} isAnimationActive={false} />
               <Line type="monotone" dataKey="equity" name="Home equity" stroke={GREEN} dot={false} strokeWidth={2} isAnimationActive={false} />
             </LineChart>
@@ -98,6 +103,7 @@ export function Summary({ data, config }: SectionProps) {
               <XAxis dataKey="age" tick={tick} tickLine={false} interval="preserveStartEnd" />
               <YAxis tickFormatter={fmtK} tick={tick} tickLine={false} width={46} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
+              {marker}
               <Line type="monotone" dataKey="homeValue" name="Home value" stroke={BLUE} dot={false} strokeWidth={2} isAnimationActive={false} />
               <Line type="monotone" dataKey="equity" name="Equity" stroke={GREEN} dot={false} strokeWidth={2} isAnimationActive={false} />
               <Line type="monotone" dataKey="upb" name="Loan balance" stroke={CORAL} dot={false} strokeWidth={2} strokeDasharray="5 3" isAnimationActive={false} />

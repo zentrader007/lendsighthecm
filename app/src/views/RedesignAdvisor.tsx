@@ -335,7 +335,7 @@ export function RedesignAdvisor({
           <button className="view-toggle" onClick={() => setInp(defaultInputs)}>
             Reset
           </button>
-          <button className="share-btn" onClick={openPresentation}>
+          <button className="share-btn" onClick={() => openPresentation(markerAge)}>
             Client Presentation
           </button>
         </div>

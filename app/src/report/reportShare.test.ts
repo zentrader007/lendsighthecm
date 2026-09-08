@@ -24,6 +24,7 @@ describe('Client presentation link round-trip', () => {
       advisor: { name: 'Pat Advisor', company: 'Lendsight', nmls: '123456', phone: '555-0100', email: 'pat@example.com' },
       notes: 'My recommendation.\n\nSecond paragraph.',
       preparedOn: '2026-09-07',
+      targetAge: 82,
     };
     const decoded = decodeReport(encodeReport(inputs, { ...report, sections: [...report.sections] }));
     expect(decoded).not.toBeNull();
@@ -35,6 +36,14 @@ describe('Client presentation link round-trip', () => {
     expect(decoded!.report.advisor.nmls).toBe('123456');
     expect(decoded!.report.notes).toBe('My recommendation.\n\nSecond paragraph.');
     expect(decoded!.report.preparedOn).toBe('2026-09-07');
+    expect(decoded!.report.targetAge).toBe(82);
+  });
+
+  it('drops an implausible target age', () => {
+    expect(sanitizeReportConfig({ targetAge: 82.4 }).targetAge).toBe(82);
+    expect(sanitizeReportConfig({ targetAge: 'x' }).targetAge).toBeNull();
+    expect(sanitizeReportConfig({ targetAge: 500 }).targetAge).toBeNull();
+    expect(sanitizeReportConfig({}).targetAge).toBeNull();
   });
 
   it('recognises presets from their section lists regardless of order', () => {

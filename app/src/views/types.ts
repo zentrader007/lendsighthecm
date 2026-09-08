@@ -24,6 +24,7 @@ export interface AdvisorProps {
   inp: SimulationInputs;
   setInp: Dispatch<SetStateAction<SimulationInputs>>;
   result: SimulationResult;
-  /** Open the Client Presentation builder for the current scenario. */
-  openPresentation: () => void;
+  /** Open the Client Presentation builder for the current scenario, carrying
+   *  the advisor's target-age marker (if one is set) into the report. */
+  openPresentation: (targetAge?: number) => void;
 }

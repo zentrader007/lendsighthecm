@@ -13,6 +13,7 @@ import {
   moveSection,
   normalizeSections,
   resolveSections,
+  sanitizeTargetAge,
   toggleSection,
   todayISO,
   type AdvisorProfile,
@@ -39,13 +40,18 @@ const PAGE_W = 816; // 8.5in at 96dpi
 export function ReportBuilder({
   inp,
   result,
+  targetAge,
   onClose,
 }: {
   inp: SimulationInputs;
   result: SimulationResult;
+  /** The advisor's target-age marker at the moment the builder opened. */
+  targetAge?: number;
   onClose: () => void;
 }) {
-  const [config, setConfig] = useState<ReportConfig>(() => defaultReportConfig(loadAdvisorProfile()));
+  const [config, setConfig] = useState<ReportConfig>(() => defaultReportConfig(loadAdvisorProfile(), targetAge));
+  const firstAge = result.projection[0].age;
+  const lastAge = result.projection[result.projection.length - 1].age;
   const [advisorOpen, setAdvisorOpen] = useState(() => !loadAdvisorProfile().name);
   const [copied, setCopied] = useState(false);
 
@@ -207,6 +213,22 @@ export function ReportBuilder({
                 placeholder="e.g. Jim & Mary Smith"
                 onChange={(e) => setConfig((c) => ({ ...c, client: { name: e.target.value } }))}
               />
+            </div>
+            <div className="rp-field">
+              <label htmlFor="rp-target">Target age</label>
+              <input
+                id="rp-target"
+                type="number"
+                inputMode="numeric"
+                min={firstAge}
+                max={lastAge}
+                value={config.targetAge ?? ''}
+                placeholder={`${firstAge}–${lastAge}, or blank`}
+                onChange={(e) =>
+                  setConfig((c) => ({ ...c, targetAge: e.target.value === '' ? null : sanitizeTargetAge(e.target.value) }))
+                }
+              />
+              <span className="rp-field-hint">Marked on every chart and highlighted in the year table.</span>
             </div>
             <div className="rp-field">
               <label htmlFor="rp-notes">Your recommendation</label>

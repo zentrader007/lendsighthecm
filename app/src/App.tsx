@@ -21,7 +21,9 @@ const initialShared = readSharedState();
 export default function App() {
   const [shared, setShared] = useState<SharedState>(initialShared);
   const [inp, setInp] = useState<SimulationInputs>(initialShared.inputs ?? defaultInputs);
-  const [presentationOpen, setPresentationOpen] = useState(false);
+  // null = closed; otherwise the target age (if any) the advisor had marked
+  // when they opened the builder, so the report starts with the same marker.
+  const [presentation, setPresentation] = useState<{ targetAge?: number } | null>(null);
 
   useEffect(() => {
     if (initialShared.view !== 'pending') return;
@@ -70,11 +72,16 @@ export default function App() {
         inp={inp}
         setInp={setInp}
         result={result}
-        openPresentation={() => setPresentationOpen(true)}
+        openPresentation={(targetAge) => setPresentation({ targetAge })}
       />
-      {presentationOpen && (
+      {presentation && (
         <Suspense fallback={null}>
-          <ReportBuilder inp={inp} result={result} onClose={() => setPresentationOpen(false)} />
+          <ReportBuilder
+            inp={inp}
+            result={result}
+            targetAge={presentation.targetAge}
+            onClose={() => setPresentation(null)}
+          />
         </Suspense>
       )}
     </>

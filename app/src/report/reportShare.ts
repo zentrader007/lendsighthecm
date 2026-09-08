@@ -17,6 +17,7 @@ import {
   emptyAdvisor,
   normalizeSections,
   presetFor,
+  sanitizeTargetAge,
   todayISO,
   SECTION_BY_KEY,
   type AdvisorProfile,
@@ -73,6 +74,7 @@ export function sanitizeReportConfig(raw: unknown): ReportConfig {
     advisor: sanitizeAdvisor(r.advisor),
     notes: str(r.notes, LIMITS.notes),
     preparedOn: /^\d{4}-\d{2}-\d{2}$/.test(preparedRaw) ? preparedRaw : todayISO(),
+    targetAge: sanitizeTargetAge(r.targetAge),
   };
 }
 

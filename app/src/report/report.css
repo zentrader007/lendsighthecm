@@ -226,6 +226,8 @@
 .rp-years td:first-child, .rp-years td:nth-child(2), .rp-years th:first-child, .rp-years th:nth-child(2) { text-align: center; }
 .rp-years td, .rp-years th { padding: 4px 8px; font-size: 11px; }
 .rp-years tbody tr:nth-child(even) { background: var(--bg-soft); }
+.rp-years tbody tr.rp-row-target, .rp-years tbody tr.rp-row-target td { background: rgba(74, 124, 155, 0.14); font-weight: 700; }
+.rp-years tbody tr.rp-row-target td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
 
 .rp-options th.rp-options-col { text-align: center; vertical-align: bottom; padding-bottom: 10px; }
 .rp-options-label { display: block; font-family: var(--font-sans); font-size: 13px; font-weight: 900; letter-spacing: -0.01em; text-transform: none; color: var(--navy); }

@@ -18,24 +18,25 @@ import type { SectionProps } from './types';
 
 export type ChartSectionKey = 'loc' | 'spending' | 'networth' | 'equity' | 'invest' | 'seqrisk';
 
-export function ChartSection({ data, section }: SectionProps & { section: ChartSectionKey }) {
+export function ChartSection({ data, config, section }: SectionProps & { section: ChartSectionKey }) {
+  const t = config.targetAge ?? undefined;
   switch (section) {
     case 'loc':
-      return <Loc data={data} />;
+      return <Loc data={data} t={t} />;
     case 'spending':
-      return <Spending data={data} />;
+      return <Spending data={data} t={t} />;
     case 'networth':
-      return <NetWorth data={data} />;
+      return <NetWorth data={data} t={t} />;
     case 'equity':
-      return <Equity data={data} />;
+      return <Equity data={data} t={t} />;
     case 'invest':
-      return <Invest data={data} />;
+      return <Invest data={data} t={t} />;
     case 'seqrisk':
-      return <SeqRisk data={data} />;
+      return <SeqRisk data={data} t={t} />;
   }
 }
 
-function Loc({ data }: { data: ReportData }) {
+function Loc({ data, t }: { data: ReportData; t?: number }) {
   const { result, itm, ref, last } = data;
   if (itm.isShortToday) {
     return (
@@ -46,7 +47,7 @@ function Loc({ data }: { data: ReportData }) {
           lede="Below the line, the loan can’t pay off your mortgage and costs yet. The crossing point is the age it can — without bringing cash to closing."
         />
         <ChartBox>
-          <InTheMoneyChart rows={itm.rows} itmAge={itm.itmAge ?? undefined} consumer />
+          <InTheMoneyChart targetAge={t} rows={itm.rows} itmAge={itm.itmAge ?? undefined} consumer />
         </ChartBox>
         <Tiles cols={3}>
           <Tile label="Short today by" value={usd(itm.shortfallToday)} tone="coral" />
@@ -65,7 +66,7 @@ function Loc({ data }: { data: ReportData }) {
         lede="The unused portion of your line of credit grows at the loan’s rate — independent of your home’s value — so what you can access later is larger than what you can access today."
       />
       <ChartBox>
-        <LocChart projection={result.projection} consumer />
+        <LocChart targetAge={t} projection={result.projection} consumer />
       </ChartBox>
       <Tiles cols={3}>
         <Tile label="Credit line today" value={usd(result.remainingCredit)} tone="primary" />
@@ -77,7 +78,7 @@ function Loc({ data }: { data: ReportData }) {
   );
 }
 
-function Spending({ data }: { data: ReportData }) {
+function Spending({ data, t }: { data: ReportData; t?: number }) {
   const { spending, spendRef } = data;
   return (
     <>
@@ -87,7 +88,7 @@ function Spending({ data }: { data: ReportData }) {
         lede="Three kinds of money: cash at closing and credit-line draws (borrowed — the balance grows), and the mortgage payment you stop making (not borrowed — simply money that stays in your pocket)."
       />
       <ChartBox>
-        <AvailableSpendingChart rows={spending.rows} consumer showBalance />
+        <AvailableSpendingChart targetAge={t} rows={spending.rows} consumer showBalance />
       </ChartBox>
       <Tiles cols={3}>
         <Tile label="First year" value={usd(spending.firstYearTotal)} note="New spending available" tone="primary" />
@@ -125,7 +126,7 @@ function Spending({ data }: { data: ReportData }) {
   );
 }
 
-function NetWorth({ data }: { data: ReportData }) {
+function NetWorth({ data, t }: { data: ReportData; t?: number }) {
   const { cmp, cmpRef, hasLien, inp } = data;
   return (
     <>
@@ -139,7 +140,7 @@ function NetWorth({ data }: { data: ReportData }) {
         }
       />
       <ChartBox>
-        <MortgageComparisonChart
+        <MortgageComparisonChart targetAge={t}
           rows={cmp.rows}
           consumer
           noLien={!hasLien}
@@ -164,7 +165,7 @@ function NetWorth({ data }: { data: ReportData }) {
   );
 }
 
-function Equity({ data }: { data: ReportData }) {
+function Equity({ data, t }: { data: ReportData; t?: number }) {
   const { result, ref } = data;
   return (
     <>
@@ -174,7 +175,7 @@ function Equity({ data }: { data: ReportData }) {
         lede="The loan balance grows because no payments are required; the home grows with the market. The gap between them is your equity — what you or your heirs keep when the home is sold."
       />
       <ChartBox>
-        <HomeEquityChart projection={result.projection} consumer />
+        <HomeEquityChart targetAge={t} projection={result.projection} consumer />
       </ChartBox>
       <Tiles cols={3}>
         <Tile label={`Home value at ${ref.age}`} value={usd(ref.homeValue)} tone="primary" />
@@ -186,7 +187,7 @@ function Equity({ data }: { data: ReportData }) {
   );
 }
 
-function Invest({ data }: { data: ReportData }) {
+function Invest({ data, t }: { data: ReportData; t?: number }) {
   const { result, inp } = data;
   const row = result.projection.find((r) => r.age >= 90) ?? data.last;
   return (
@@ -197,7 +198,7 @@ function Invest({ data }: { data: ReportData }) {
         lede={`An illustration, not a recommendation: the cash taken at closing invested at ${pct(inp.investmentReturn, 1)} a year${inp.taxRateOnSoldAssets > 0 ? `, after a ${pct(inp.taxRateOnSoldAssets, 0)} tax on the invested side` : ''}, compared with leaving the equity alone.`}
       />
       <ChartBox>
-        <InvestChart projection={result.projection} />
+        <InvestChart targetAge={t} projection={result.projection} />
       </ChartBox>
       <Tiles cols={3}>
         <Tile label={`Invested cash at ${row.age}`} value={usd(row.investment)} note={`From ${usd(result.netCashDrawn)} at closing`} tone="primary" />
@@ -209,7 +210,7 @@ function Invest({ data }: { data: ReportData }) {
   );
 }
 
-function SeqRisk({ data }: { data: ReportData }) {
+function SeqRisk({ data, t }: { data: ReportData; t?: number }) {
   const { seq, seqLast, inp } = data;
   return (
     <>
@@ -219,7 +220,7 @@ function SeqRisk({ data }: { data: ReportData }) {
         lede={`Two ways to pay for living expenses through a ${pct(inp.crashPct, 0)} market drop with ${inp.recoveryYears} years of recovery: keep selling investments at low prices, or draw from the credit line and let the investments recover.`}
       />
       <ChartBox>
-        <SequenceChart rows={seq.rows} />
+        <SequenceChart targetAge={t} rows={seq.rows} />
       </ChartBox>
       <Tiles cols={3}>
         <Tile label={`Savings at ${seqLast.age} · bridge from line`} value={usd(seqLast.portfolioBridge)} note={seq.bridgeDepletionAge != null ? `Runs out at age ${seq.bridgeDepletionAge}` : 'Lasts the projection'} tone="green" />

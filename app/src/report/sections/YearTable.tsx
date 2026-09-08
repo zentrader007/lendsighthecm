@@ -3,8 +3,9 @@ import { SectionHead } from './bits';
 import type { SectionProps } from './types';
 
 /** The full projection, read-only. Header repeats on printed pages. */
-export function YearTable({ data }: SectionProps) {
+export function YearTable({ data, config }: SectionProps) {
   const { result } = data;
+  const t = config.targetAge;
   const rows = result.projection;
   const hasDraws = rows.some((r) => (r.draw ?? 0) > 0);
   const hasPayments = rows.some((r) => (r.payment ?? 0) > 0);
@@ -31,7 +32,7 @@ export function YearTable({ data }: SectionProps) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.year}>
+              <tr key={r.year} className={t != null && r.age === t ? 'rp-row-target' : undefined}>
                 <td>{r.year}</td>
                 <td>{r.age}</td>
                 {hasDraws && <td>{r.draw ? usd(r.draw) : ''}</td>}
