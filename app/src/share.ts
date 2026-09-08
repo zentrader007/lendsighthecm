@@ -1,28 +1,53 @@
 import type { SimulationInputs } from './engine';
 import { defaultInputs, defaultCosts } from './engine/defaults';
 
-// Encode/decode the full input set into a URL-safe string so a scenario can be
-// shared as a link that reproduces the exact same numbers.
-export function encodeInputs(inp: SimulationInputs): string {
-  const json = JSON.stringify(inp);
-  const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(json)));
-  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+// URL-safe base64 of a UTF-8 JSON payload — the encoding behind every share
+// link (`?d=` scenario links and `?r=` client-presentation links).
+export function toBase64Url(value: unknown): string {
+  const json = JSON.stringify(value);
+  const bytes = new TextEncoder().encode(json);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export function decodeInputs(s: string): SimulationInputs | null {
+/** Parse a base64url payload back to JSON; null on any malformed input. */
+export function fromBase64Url(s: string): unknown {
   try {
     const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const parsed = JSON.parse(new TextDecoder().decode(bytes));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
+// Encode/decode the full input set into a URL-safe string so a scenario can be
+// shared as a link that reproduces the exact same numbers.
+export function encodeInputs(inp: SimulationInputs): string {
+  return toBase64Url(inp);
+}
+
+export function decodeInputs(s: string): SimulationInputs | null {
+  return inputsFromJson(fromBase64Url(s));
+}
+
+/** Coerce an already-parsed (untrusted) object into valid inputs; null if it
+ *  isn't an object at all. */
+export function inputsFromJson(parsed: unknown): SimulationInputs | null {
+  try {
     if (!parsed || typeof parsed !== 'object') return null;
+    const p = parsed as Partial<SimulationInputs> & { costs?: Partial<SimulationInputs['costs']> };
     // Merge over defaults so a link made before a field existed (or a partial /
     // garbled payload) can never leave a field undefined → NaN downstream, then
     // sanitize so a stale or hand-crafted link can't inject strings, NaN, or
     // non-array schedules into the engine.
     return sanitizeInputs({
       ...defaultInputs,
-      ...parsed,
-      costs: { ...defaultCosts, ...(parsed.costs ?? {}) },
+      ...p,
+      costs: { ...defaultCosts, ...(p.costs ?? {}) },
     } as SimulationInputs);
   } catch {
     return null;
@@ -113,19 +138,3 @@ function sanitizeInputs(inp: SimulationInputs): SimulationInputs {
   };
 }
 
-export interface SharedState {
-  view: 'advisor' | 'consumer';
-  inputs: SimulationInputs | null;
-}
-
-export function readSharedState(): SharedState {
-  const params = new URLSearchParams(window.location.search);
-  const view = params.get('view') === 'consumer' ? 'consumer' : 'advisor';
-  const d = params.get('d');
-  return { view, inputs: d ? decodeInputs(d) : null };
-}
-
-export function buildShareUrl(inp: SimulationInputs): string {
-  const base = `${window.location.origin}${window.location.pathname}`;
-  return `${base}?view=consumer&d=${encodeInputs(inp)}`;
-}

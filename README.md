@@ -16,8 +16,11 @@ downturn") analysis.
 app/                     The Vite + React + TypeScript application
   src/engine/            HECM simulation engine (PLF, principal limit, 38-yr
                          projection, standby LOC, sequence-risk) + tests
-  src/views/             RedesignAdvisor (default) and ClassicAdvisor layouts
-  src/components/        Charts, fields, consumer share view, projection table
+  src/views/             RedesignAdvisor layout
+  src/components/        Charts, fields, projection table
+  src/report/            Client Presentation: report config, `?r=` link encoding,
+                         options comparison, the report document + sections, the
+                         advisor's builder, and the client's link view
   data/                  HUD PLF table and historical CMT data (JSON)
 style-guide/             Brand / design reference
 vercel.json              Static deployment config (builds from app/)
@@ -36,7 +39,13 @@ npm run build    # type-check + production build
 
 ## Notes
 
-- Scenarios are shareable via a base64-encoded `?d=` URL param (no database).
-  `?layout=classic` opens the original sidebar layout; the default is the
-  redesigned layout.
+- **Client Presentation** (header button) opens a report generator: pick a
+  preset (1-page summary / Standard / Comprehensive) or hand-pick and reorder
+  sections, add the client's name, your advisor profile (remembered in the
+  browser), and a written recommendation, then **Print / Save as PDF** (browser
+  print, portrait letter, one section per page) or **Copy client link**.
+- Client links are `?r=<base64>` and carry the scenario inputs *and* the report
+  configuration, so the client opens exactly the document you built — no
+  database. Legacy `?view=consumer&d=` links still open, as a Standard report.
+- A bare `?d=<base64>` link opens the advisor with those inputs.
 - Figures are educational estimates, not a loan offer or financial advice.

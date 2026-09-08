@@ -24,7 +24,6 @@ export interface AdvisorProps {
   inp: SimulationInputs;
   setInp: Dispatch<SetStateAction<SimulationInputs>>;
   result: SimulationResult;
-  copied: boolean;
-  share: () => void;
-  goConsumer: () => void;
+  /** Open the Client Presentation builder for the current scenario. */
+  openPresentation: () => void;
 }
