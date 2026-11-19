@@ -8,6 +8,8 @@ import { runInTheMoney } from '../engine/inTheMoney';
 import { fetchLiveCMT } from '../lib/cmt';
 import { buildLevelDraws } from '../lib/drawPlan';
 import { buildAppreciationTrend, buildTrendSeries } from '../lib/appreciationTrend';
+import { buildIntakeEmailUrl } from '../lib/intakeEmail';
+import { loadAdvisorProfile } from '../report/advisorProfile';
 import { NumberField, SelectField, ToggleField } from '../components/Field';
 import { InfoTip } from '../components/InfoTip';
 import { ProjectionTableEditable } from '../components/ProjectionTableEditable';
@@ -334,6 +336,15 @@ export function RedesignAdvisor({
         <div className="header-actions">
           <button className="view-toggle" onClick={() => setInp(defaultInputs)}>
             Reset
+          </button>
+          <button
+            className="view-toggle"
+            title="Open a ready-to-send email asking the client for the two numbers needed to run an estimate"
+            onClick={() => {
+              window.location.href = buildIntakeEmailUrl(loadAdvisorProfile());
+            }}
+          >
+            Send Questions
           </button>
           <button className="share-btn" onClick={() => openPresentation(markerAge)}>
             Client Presentation
